@@ -42,11 +42,11 @@ class Regex:
             if tokens[i] in ['(']:
                 parenthesis+=1
             
-        return errors
-        
         if parenthesis != 0:
             print('Error en la expresión regular ingresada. Discrepancia en la cantidad de paréntesis abiertos y cerrados.')
             errors+=1
+        
+        return errors
 
     def toPosfix(self):
         input = [char for char in self.expression]
@@ -55,6 +55,8 @@ class Regex:
         # Precedences for the operations
         precedences = {
             "*": 2,
+            "+": 2,
+            "?": 2,
             "@": 1,
             "|": 0,
             "(": -1,
@@ -62,9 +64,9 @@ class Regex:
         }
         # Start Shunting-Yard Algorithm
         for char in input:
-            if char not in ["|", "@", "+", "(", ")"]:
+            if char not in ["|", "@", "(", ")"]:
                 output_queue += char
-            elif char in ["|", "@", "+"]:
+            elif char in ["|", "@"]:
                 while len(operator_stack) > 0:
                     if precedences[operator_stack[0]] < precedences[char]:
                         break
@@ -88,10 +90,10 @@ class Regex:
         tree_stack = [] # Stack to keep the operations
         position = 1
         for item in posfix:
-            if item not in ["*", "@", "|"]:
+            if item not in ["*", "@", "|", "+", "?"]:
                 # It is a character, append to the tree_stack
                 tree_stack.insert(0, item)
-            elif item in ["*", "@", "|"]:
+            elif item in ["*", "@", "|", "+", "?"]:
                 if item in ["@", "|"]:
                     rightOperand = tree_stack.pop(0)
                     leftOperand = tree_stack.pop(0)
@@ -155,7 +157,7 @@ class Regex:
                         for lp in visit_node.right_child.first_pos:
                             follow_pos[str(fp)].append(lp)
             if visit_node.middle_child is not None:
-                if visit_node.value == "*":
+                if visit_node.value in ["*", "+", "?"]:
                     for fp in visit_node.last_pos:
                         for lp in visit_node.first_pos:
                             follow_pos[str(fp)].append(lp)
