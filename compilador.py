@@ -3,6 +3,7 @@ from regex import Regex
 from automata import Automata
 import networkx as nx
 import matplotlib.pyplot as plt
+from graphviz import Digraph
 
 
 def menu():
@@ -17,23 +18,18 @@ def options():
         regex = Regex(regex)
         automataFromRegex = Automata.fromRegex(regex)
         G = nx.DiGraph()
-        node_colors = []
+        dot = Digraph()
         for state in automataFromRegex.states:
-            G.add_node(state)
             if state in automataFromRegex.start:
-                node_colors.append('yellow')
+                dot.node('start (' + str(state) + ')')
             elif state in automataFromRegex.acceptance:
-                node_colors.append('red')
+                dot.node('end (' + str(state) + ')', shape='doublecircle')
             else:
-                node_colors.append('blue')
+                dot.node(str(state))
         for transition in automataFromRegex.transitions:
-            G.add_edge(transition[0], transition[2], label = transition[1])
-
-        pos = nx.planar_layout(G)
-        nx.draw(G, pos, with_labels=True,node_color=node_colors)
-        labels = nx.get_edge_attributes(G, 'label')
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
-        plt.show()
+            dot.edge('end (' + str(transition[0])+')' if transition[0] in automataFromRegex.acceptance else 'start (' + str(transition[0])+')' if  transition[0] in automataFromRegex.start else str(transition[0]) , 'end (' + str(transition[2])+')' if transition[2] in automataFromRegex.acceptance else 'start (' + str(transition[2])+')' if  transition[2] in automataFromRegex.start else str(transition[2]) , label = transition[1])
+            
+        dot.render('graph')
             
     except re.error:
         print('La expresión regular es inválida')
