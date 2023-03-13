@@ -33,6 +33,7 @@ def afd_from_afn_from_regex():
     try:
         regex = Regex(regex)
         automata = Automata(automata_type="afd_from_afn_from_regex", regex=regex)
+        automata.minimizeAFD(automata.partition())
         automata.represent_graph()
 
         cadena = str(input('Ingrese cadena para simular afd :'))
@@ -48,11 +49,20 @@ def afd_from_regex():
     print('\nProyecto 1 - Teoría de la computación')
     menu()
     regex = str(input('Ingrese cadena regex: '))
-    regex = Regex(regex)
-    automata = Automata(automata_type="afd_from_regex", regex=regex)
+    try:
+        regex = Regex(regex)
+        automata = Automata(automata_type="afd_from_regex", regex=regex)
+        #automata.minimizeAFD(automata.partition())
+        automata.represent_graph()
+
+        cadena = str(input('Ingrese cadena para simular afd :'))
+        if automata.simulate_afd(cadena):
+            print("Cadena aceptada")
+        else:
+            print("Cadena no aceptada")
     
-    #print(automata.follow_pos_table)
-    #print(automata.node_symbol)
+    except re.error:
+        print('La expresión regular es inválida')
 
 
 afd_from_afn_from_regex()

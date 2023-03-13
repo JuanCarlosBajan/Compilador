@@ -55,15 +55,16 @@ class Automata:
             if state not in self.acceptance and state not in self.start:
                 dot.node(str(state))
         for transition in self.transitions:
-            dot.edge('end (' + str(transition[0])+')' if transition[0] in self.acceptance and transition[0] not in self.start
-                     else 'start (' + str(transition[0])+')' if  transition[0] in self.start and transition[0] not in self.acceptance 
-                     else 'start/end (' + str(transition[0])+')' if transition[0] in self.start and transition[0] in self.acceptance
-                     else str(transition[0]) , 
-                     'end (' + str(transition[2])+')' if transition[2] in self.acceptance and transition[2] not in self.start 
-                     else 'start (' + str(transition[2])+')' if  transition[2] in self.start and transition[2] not in self.acceptance
-                     else 'start/end (' + str(transition[2])+')' if  transition[2] in self.start and transition[2] in self.acceptance
-                     else str(transition[2])
-                     , label = transition[1])
+            if transition[0] != None and transition[2] != None:
+                dot.edge('end (' + str(transition[0])+')' if transition[0] in self.acceptance and transition[0] not in self.start
+                        else 'start (' + str(transition[0])+')' if  transition[0] in self.start and transition[0] not in self.acceptance 
+                        else 'start/end (' + str(transition[0])+')' if transition[0] in self.start and transition[0] in self.acceptance
+                        else str(transition[0]) , 
+                        'end (' + str(transition[2])+')' if transition[2] in self.acceptance and transition[2] not in self.start 
+                        else 'start (' + str(transition[2])+')' if  transition[2] in self.start and transition[2] not in self.acceptance
+                        else 'start/end (' + str(transition[2])+')' if  transition[2] in self.start and transition[2] in self.acceptance
+                        else str(transition[2])
+                        , label = transition[1])
         dot.render('graph')
 
     """
@@ -506,7 +507,7 @@ class Automata:
             for s in range(1,len(symbols) + 1):
                 if transition[s] != "" and type(transition[0]) is not list:
                     self.transitions.append((transition[0],symbols[s-1],transition[s]))
-                else:
+                elif transition[s] != "" and type(transition[0]) is list:
                     self.transitions.append((new_names[str(transition[0])],symbols[s-1],transition[s]))
 
     """
@@ -735,8 +736,9 @@ class Automata:
                 if i in x[0] or i == self.acceptance:
                     newAcceptance.append(x[0])
 
-        self.acceptance = newAcceptance
 
+
+        self.acceptance = newAcceptance
         self.modifyStateStructure()
 
         newStates = []
@@ -751,8 +753,8 @@ class Automata:
                         if ii != '&' and ii != None and (x[0], ii, x[1][self.symbols.index(ii)]) not in newTransitions:
                             newTransitions.append((x[0], ii, x[1][self.symbols.index(ii)]))
 
-        self.transitions = newTransitions
-        self.states = newStates
+        self.transitions = list(set(newTransitions))
+        self.states = list(set(newStates))
 
         receive = list(set([t[2] for t in self.transitions]))
 
@@ -761,8 +763,6 @@ class Automata:
 
         self.writeTxt('respuestas/Conversion_AFN_AFD.txt', self.states, self.symbols, self.start, self.acceptance,
                       self.transitions, 'conversion')
-
-        self.represent_graph()
 
     """
     Ahora, para trabajar de forma mas ordenada se deben cambiar todos los esados a un mismo formato, en este caso decidimos SX
@@ -777,7 +777,7 @@ class Automata:
                 self.acceptance[self.acceptance.index(state)] = prefix + str(index)
 
             if state == self.start:
-                self.start = prefix + str(index)
+                self.start = [prefix + str(index)]
 
             for i in range(len(self.AFD)):
                 for ii in range(len(self.AFD[i][1])):
@@ -885,7 +885,7 @@ class Automata:
     
     def simulate_afd(self, word):
         acceptance = False
-        state = self.start
+        state = self.start[0]
         for char in word:
             # Find a possible transition
             if char not in self.symbols:
@@ -914,3 +914,58 @@ class Automata:
             if self.acceptance.count(state) > 0: return True
         return False
 
+    def minimizeAFD(self, statesD):
+        # Replacing states in list by new states
+        newStates = []  # Creating new states list
+        for k, v in statesD.items():
+            newStates.append(k)
+
+        # Replacing by new start state
+        newStart = []  # Creating new start list
+        for k, v in statesD.items():
+            if self.start[0] in v:
+                newStart.append(k)
+
+        #Verifying states 
+        newSyms = []
+        for sym in self.symbols:
+            if (sym == '&'): continue 
+            newSyms.append(sym)
+
+        # Creating new aceptance list
+        newAcceptance = []
+        for element in self.acceptance:
+            newAcceptance.append(element)
+
+        # Replacing new acceptance states
+        for k, v in statesD.items():
+            for indx in range(len(newAcceptance)):
+                if newAcceptance[indx] in v:
+                    newAcceptance[indx] = k
+        newAcceptance = list(dict.fromkeys(newAcceptance))  # In case elements are duplicated
+
+        # Creating new transition list
+        newTransitions = []
+        for element in self.transitions:
+            if(element[2] == None): continue
+            newTransitions.append(element)
+
+        # Converting lists to tuples
+        cList = [list(i) for i in newTransitions]
+
+        # Replacing new states in transitions list
+        for transition in cList:
+            for k, v in statesD.items():
+                if transition[0] in v:
+                    if transition[2] == None: continue
+                    transition[0] = k
+                if transition[2] in v:
+                    if transition[2] == None: continue
+                    transition[2] = k
+
+        # Removing duplicates
+        noDuplicatesList = sorted(set(tuple(l) for l in cList))
+        newTransitions = noDuplicatesList
+
+        self.writeTxt('respuestas/Minimizacion_AFD.txt', newStates, newSyms, newStart, newAcceptance,
+                      newTransitions, 'mini', statesD)
