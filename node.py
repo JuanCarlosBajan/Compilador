@@ -9,6 +9,8 @@ class Node:
         if middle_child is not None:
             self.single_child = True
             self.middle_child = middle_child
+            self.left_child = None
+            self.right_child = None
         else:
             self.single_child = False
             self.middle_child = None

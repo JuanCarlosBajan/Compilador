@@ -1,0 +1,12 @@
+ESTADOS = ['s0', 's1', 's2', 's3']
+SIMBOLOS = ['a', 'b']
+INICIO = ['s0']
+ACEPTACION = ['s3']
+TRANSICIONES = [('s0', 'a', 's1'),
+				('s0', 'b', 's0'),
+				('s1', 'a', 's1'),
+				('s1', 'b', 's2'),
+				('s2', 'a', 's1'),
+				('s2', 'b', 's3'),
+				('s3', 'a', 's1'),
+				('s3', 'b', 's0')]

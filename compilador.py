@@ -1,42 +1,60 @@
 import re
 from regex import Regex
 from automata import Automata
-import networkx as nx
-import matplotlib.pyplot as plt
-from graphviz import Digraph
 
 
 def menu():
     print('Ingresar regex')
 
-def options():
+def afn_from_regex():
     print('\nProyecto 1 - Teoría de la computación')
     menu()
     regex = str(input('Ingrese cadena regex: '))
 
     try:
         regex = Regex(regex)
-        automataFromRegex = Automata.fromRegex(regex)
-        G = nx.DiGraph()
-        dot = Digraph()
-        for state in automataFromRegex.states:
-            if state in automataFromRegex.start:
-                dot.node('start (' + str(state) + ')')
-            elif state in automataFromRegex.acceptance:
-                dot.node('end (' + str(state) + ')', shape='doublecircle')
-            else:
-                dot.node(str(state))
-        for transition in automataFromRegex.transitions:
-            dot.edge('end (' + str(transition[0])+')' if transition[0] in automataFromRegex.acceptance else 'start (' + str(transition[0])+')' if  transition[0] in automataFromRegex.start else str(transition[0]) , 'end (' + str(transition[2])+')' if transition[2] in automataFromRegex.acceptance else 'start (' + str(transition[2])+')' if  transition[2] in automataFromRegex.start else str(transition[2]) , label = transition[1])
-            
-        dot.render('graph')
+        automata = Automata(automata_type="afn_from_regex", regex=regex)
+        automata.represent_graph()
+
+        cadena = str(input('Ingrese cadena para simular afn :'))
+        if automata.simulate_afn(cadena):
+            print("Cadena aceptada")
+        else:
+            print("Cadena no aceptada")
             
     except re.error:
         print('La expresión regular es inválida')
 
+def afd_from_afn_from_regex():
+    print('\nProyecto 1 - Teoría de la computación')
+    menu()
+    regex = str(input('Ingrese cadena regex: '))
+
+    try:
+        regex = Regex(regex)
+        automata = Automata(automata_type="afd_from_afn_from_regex", regex=regex)
+        automata.represent_graph()
+
+        cadena = str(input('Ingrese cadena para simular afd :'))
+        if automata.simulate_afd(cadena):
+            print("Cadena aceptada")
+        else:
+            print("Cadena no aceptada")
+            
+    except re.error:
+        print('La expresión regular es inválida')
+
+def afd_from_regex():
+    print('\nProyecto 1 - Teoría de la computación')
+    menu()
+    regex = str(input('Ingrese cadena regex: '))
+    regex = Regex(regex)
+    automata = Automata(automata_type="afd_from_regex", regex=regex)
+    
+    #print(automata.follow_pos_table)
+    #print(automata.node_symbol)
 
 
-
-options()
+afd_from_afn_from_regex()
 
 

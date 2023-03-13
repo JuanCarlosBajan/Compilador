@@ -1,17 +1,70 @@
+from node import Node
+from graphviz import Digraph
+
+
 class Automata:
 
-    def __init__(self, states=None, symbols=None, start=None, acceptance=None, transitions=None):
+    def __init__(self, automata_type, regex = None, states=None, symbols=None, start=None, acceptance=None, transitions=None):
 
-        if (states is None or symbols is None or start is None or acceptance is None or transitions is None):
-            raise ValueError("Por favor ingresa los valores correctos")
-        elif (len(states) < 0 or len(symbols) < 0 or len(start) < 0 or len(acceptance) < 0 or len(transitions) < 0):
-            raise ValueError("Por favor ingresa los valores correctos")
+        if automata_type == "from_definitions":
+            if (states is None or symbols is None or start is None or acceptance is None or transitions is None):
+                raise ValueError("Por favor ingresa los valores correctos")
+            elif (len(states) < 0 or len(symbols) < 0 or len(start) < 0 or len(acceptance) < 0 or len(transitions) < 0):
+                raise ValueError("Por favor ingresa los valores correctos")
+            self.states = states
+            self.symbols = symbols
+            self.start = start
+            self.acceptance = acceptance
+            self.transitions = transitions
+        
+        elif automata_type == "afn_from_regex":
+            if regex == None:
+                raise ValueError("Por favor ingresa los valores correctos")
+            self.afn_from_regex(regex)
 
-        self.states = states
-        self.symbols = symbols
-        self.start = start
-        self.acceptance = acceptance
-        self.transitions = transitions
+        elif automata_type == "basic_automata":
+            self.states=[f'{states}', f'{states + 1}']
+            self.acceptance=[f'{states + 1}']
+            self.symbols=[symbols]
+            self.start=[f'{states}']
+            self.transitions=[(f'{states}', symbols, f'{states + 1}')]
+
+        elif automata_type == "afd_from_regex":
+            if regex == None:
+                raise ValueError("Por favor ingresa los valores correctos")
+            self.afd_from_regex(regex)
+
+        elif automata_type == "afd_from_afn_from_regex":
+            if regex == None:
+                raise ValueError("Por favor ingresa los valores correctos")
+            self.AFD = []
+            self.afn_from_regex(regex)
+            self.toAFD()
+
+
+
+    def represent_graph(self):
+        dot = Digraph()
+        for state in self.states:
+            if state in self.start and state not in self.acceptance:
+                dot.node('start (' + str(state) + ')')
+            if state in self.acceptance and state not in self.start:
+                dot.node('end (' + str(state) + ')', shape='doublecircle')
+            if state in self.acceptance and state in self.start:
+                dot.node('start/end (' + str(state) + ')', shape='doublecircle')
+            if state not in self.acceptance and state not in self.start:
+                dot.node(str(state))
+        for transition in self.transitions:
+            dot.edge('end (' + str(transition[0])+')' if transition[0] in self.acceptance and transition[0] not in self.start
+                     else 'start (' + str(transition[0])+')' if  transition[0] in self.start and transition[0] not in self.acceptance 
+                     else 'start/end (' + str(transition[0])+')' if transition[0] in self.start and transition[0] in self.acceptance
+                     else str(transition[0]) , 
+                     'end (' + str(transition[2])+')' if transition[2] in self.acceptance and transition[2] not in self.start 
+                     else 'start (' + str(transition[2])+')' if  transition[2] in self.start and transition[2] not in self.acceptance
+                     else 'start/end (' + str(transition[2])+')' if  transition[2] in self.start and transition[2] in self.acceptance
+                     else str(transition[2])
+                     , label = transition[1])
+        dot.render('graph')
 
     """
     Funcion para escribir archivos de texto con las respuestas.
@@ -43,17 +96,9 @@ class Automata:
                 elif index >= 1:
                     f.write('\t\t\t\t\t\t\t\t' + "   '" + str(k) + "': " + str(v) + ',\n')
         f.close()
+        return
 
-    def basic_automata(current_status, operand):
-        return Automata(
-            states=[f'{current_status}', f'{current_status + 1}'],
-            acceptance=[f'{current_status + 1}'],
-            symbols=[operand],
-            start=[f'{current_status}'],
-            transitions=[(f'{current_status}', operand, f'{current_status + 1}')]
-        )
-
-    def fromRegex(regex):
+    def afn_from_regex(self,regex):
         posfixExpression = regex.toPosfix()
         print(f"La expresión postfix es: {posfixExpression}")
         regex_splitted = [char for char in posfixExpression]
@@ -73,13 +118,14 @@ class Automata:
                     rightOperand = stack.pop(0)
                     leftOperand = stack.pop(0)
                     if not isinstance(leftOperand, Automata):
-                        leftOperand = Automata.basic_automata(current_status, leftOperand)
+                        leftOperand = Automata(automata_type="basic_automata",states=current_status, symbols=leftOperand)
                         current_status += 2
                     if not isinstance(rightOperand, Automata):
-                        rightOperand = Automata.basic_automata(current_status, rightOperand)
+                        rightOperand = Automata(automata_type="basic_automata",states=current_status, symbols=rightOperand)
                         current_status += 1
                     # Create the result Automata
                     result_automata = Automata(
+                        automata_type="from_definitions",
                         states=list(dict.fromkeys(leftOperand.states + rightOperand.states)),
                         acceptance=rightOperand.acceptance,
                         start=leftOperand.start,
@@ -94,10 +140,10 @@ class Automata:
                     rightOperand = stack.pop(0)
                     leftOperand = stack.pop(0)
                     if not isinstance(leftOperand, Automata):
-                        leftOperand = Automata.basic_automata(current_status, leftOperand)
+                        leftOperand = Automata(automata_type="basic_automata",states=current_status, symbols=leftOperand)
                         current_status += 2
                     if not isinstance(rightOperand, Automata):
-                        rightOperand = Automata.basic_automata(current_status, rightOperand)
+                        rightOperand = Automata(automata_type="basic_automata",states=current_status, symbols=rightOperand)
                         current_status += 1
                     # Create the result automata
                     current_status += 1
@@ -105,8 +151,8 @@ class Automata:
                     current_status += 1
                     end_state = current_status
                     result_automata = Automata(
-                        states=list(dict.fromkeys(leftOperand.states + rightOperand.states)) + [f'{start_state}',
-                                                                                                f'{end_state}'],
+                        automata_type="from_definitions",
+                        states=list(dict.fromkeys(leftOperand.states + rightOperand.states)) + [f'{start_state}',f'{end_state}'],
                         acceptance=[f'{end_state}'],
                         start=[f'{start_state}'],
                         symbols=list(dict.fromkeys(leftOperand.symbols + rightOperand.symbols + ["&"])),
@@ -124,7 +170,7 @@ class Automata:
                     # Kleene
                     operand = stack.pop(0)
                     if not isinstance(operand, Automata):
-                        operand = Automata.basic_automata(current_status, operand)
+                        operand = Automata(automata_type="basic_automata",states=current_status, symbols=operand)
                         current_status += 1
                     # Create the result automata
                     current_status += 1
@@ -132,6 +178,7 @@ class Automata:
                     current_status += 1
                     end_state = current_status
                     result_automata = Automata(
+                        automata_type="from_definitions",
                         states=list(dict.fromkeys(operand.states)) + [f'{start_state}',
                                                                       f'{end_state}'],
                         acceptance=[f'{end_state}'],
@@ -151,13 +198,14 @@ class Automata:
                 elif item == "?":
                     operand = stack.pop(0)
                     if not isinstance(operand, Automata):
-                        operand = Automata.basic_automata(current_status, operand)
+                        operand = Automata(automata_type="basic_automata",states=current_status, symbols=operand)
                         current_status += 1
                     current_status += 1
                     start_state = current_status
                     current_status += 1
                     end_state = current_status
                     result_automata = Automata(
+                        automata_type="from_definitions",
                         states=list(dict.fromkeys(operand.states)) + [f'{start_state}',
                                                                       f'{end_state}'],
                         acceptance=[f'{end_state}'],
@@ -175,13 +223,14 @@ class Automata:
                 elif item == "+":
                     operand = stack.pop(0)
                     if not isinstance(operand, Automata):
-                        operand = Automata.basic_automata(current_status, operand)
+                        operand = Automata(automata_type="basic_automata",states=current_status, symbols=operand)
                         current_status += 1
                     current_status += 1
                     start_state = current_status
                     current_status += 1
                     end_state = current_status
                     result_automata = Automata(
+                        automata_type="from_definitions",
                         states=list(dict.fromkeys(operand.states)) + [f'{start_state}',
                                                                       f'{end_state}'],
                         acceptance=[f'{end_state}'],
@@ -199,7 +248,11 @@ class Automata:
         stack[0].writeTxt('respuestas/FromRegex_To_AFN.txt', stack[0].states, stack[0].symbols, stack[0].start, stack[0].acceptance,
                       stack[0].transitions, 'FromRegex_To_AFN')
 
-        return stack[0]
+        self.states = stack[0].states
+        self.symbols = stack[0].symbols
+        self.start = stack[0].start
+        self.acceptance = stack[0].acceptance
+        self.transitions = stack[0].transitions
 
     def e_closure(self, state):
         closure = [state]
@@ -209,7 +262,6 @@ class Automata:
         for i in range(0,len(self.matrix[idx])):
             if self.matrix[idx][i].count("&") > 0 and i != idx:
                 closure = closure + self.e_closure(self.states[i])
-
         return closure
 
     def e_closures(self, states):
@@ -228,8 +280,6 @@ class Automata:
                     end_states.append(self.states[i])
         return end_states
 
-
-
     def simulate_afn(self, word):
         s = self.e_closure(self.start[0])
         for char in word:
@@ -237,3 +287,630 @@ class Automata:
         for state in s:
             if self.acceptance.count(state) > 0: return True
         return False
+
+    def afd_from_regex(self,regex):
+        self.follow_pos(regex)
+        self.build_transition_table_from_follow_pos()
+        self.represent_graph()
+        self.writeTxt("AFD_FROM_REGEX",self.states,self.symbols, self.start, self.acceptance, self.transitions, "asd")
+
+    # Para poder implementar el algoritmo de conversion directa de regex a AFD debemos construir un arbol sintactico
+    def follow_pos(self,regex):
+        posfix = regex.toPostfixIdentity(True)
+        # El stack mantiene el orden de los elementos para unirlos a sus respectivos nodos
+        tree_stack = []
+        # Guardamos la ultima posicion almacenada para llevar un buen control de los nodos, esta posicion
+        # se almacena en el nodo y nos sirve para el algoritmo
+        position = 1
+        # por cada elemento en la expresion posfix realizamos la asignacion de elementos a sus respectivos nodos
+        # tambien opbtenemos nullable, la primera posicion y ultima posicion
+        for item in posfix:
+            # Si el elemento pertenece al alfabeto se inserta en el stack
+            if item not in ["*", "@", "|"]:
+                tree_stack.insert(0, item)
+            
+            # Si el elemento pertenece a los operadores realizamos la asignacion de las variables en el algoritmo
+            elif item in ["*", "@", "|"]:
+
+                if item in ["@", "|"]:
+
+                    # En caso el operador pertenece a concatenacion o seleccion obtenemos los elementos tanto
+                    # de la izquierda como de la derecha
+                    rightOperand = tree_stack.pop(0)
+                    leftOperand = tree_stack.pop(0)
+                    
+                    # verificamos que el elemento izquierdo sea un caracter o un nodo
+                    if not isinstance(leftOperand, Node):
+                        # en caso sea caracter, sea un elemento, esto quiere decir que encontramos una hoja
+                        # del arbol por lo que colocamos su primera y ultima posicion como si mismo(su sposicion actual).
+                        leftOperand = Node(value=leftOperand, right_child=None, left_child=None, position=position)
+                        leftOperand.first_pos = [position]
+                        leftOperand.last_pos = [position]
+                        # aumentamos uno en el registro de posiciones que llevamos
+                        position += 1
+                    
+                    # verificamos que el elemento derecho sea un caracter o un nodo
+                    if not isinstance(rightOperand, Node):
+                        # en caso sea caracter, sea un elemento, esto quiere decir que encontramos una hoja
+                        # del arbol por lo que colocamos su primera y ultima posicion como si mismo(su sposicion actual).
+                        rightOperand = Node(value=rightOperand, right_child=None, left_child=None, position=position)
+                        rightOperand.first_pos = [position]
+                        rightOperand.last_pos = [position]
+                        # aumentamos uno en el registro de posiciones que llevamos
+                        position += 1
+                    
+                    # instanciamos el nuevo nodo y le introducimos tanto el operando izquierdo como el derecho.
+                    # en este caso se colocaria como izquiero o derecho otro nodo. Dependiendo de si se encontro en el
+                    # stack un elemento o no, los nodos hijos serian hojas u otros caminos.
+                    new_node = Node(left_child=leftOperand, right_child=rightOperand, value=item)
+                    leftOperand.root = new_node
+
+                    # Ahora, es distinto como funciona el algoritmo para concatenacion y seleccion por lo que
+                    # definimos las instrucciones para cada escenario
+                    if item == "|":
+                        # En caso el operador sea de seleccion definimos la primera posicion de ese nodo
+                        # como la union de la primera posicion de sus dos nodos hijos. Y la ultima posicion de
+                        # ese nodo como la union de la ultima posicion de sus dos nodos hijos.
+                        new_node.first_pos = leftOperand.first_pos + rightOperand.first_pos
+                        new_node.last_pos = leftOperand.last_pos + rightOperand.last_pos
+                    
+                    elif item == "@":
+                        # En caso el operador sea de concatenacion debemos hacer otras validaciones
+                        new_node.first_pos = leftOperand.first_pos
+                        new_node.last_pos = rightOperand.last_pos
+
+                        # Si el operador izquierdo es anulable, la primera posicion del nodo sera la union de
+                        # la primera posicion de sus dos nodos hijos, en caso contrario sera unicamente la
+                        # primera posicion de su nodo izquierdo.
+                        if leftOperand.nullable():
+                            new_node.first_pos = new_node.first_pos + rightOperand.first_pos
+
+                        # Si el operador derecho es anulable, la ultima posicion del nodo en cuestion sera la
+                        # union de la ultima posicion de sus dos nodos hijos, en caso contrario sera unicamente
+                        # la ultima posicion de su nodo derecho
+                        if rightOperand.nullable():
+                            new_node.last_pos = new_node.last_pos +  leftOperand.last_pos
+
+                else:
+                    # En caso el operador encontrado sea la estrella de kleen debemos extraer unicamente
+                    # un elemento del stack
+                    operand = tree_stack.pop(0)
+                    # Si el siguiente elemento es un caracter, creamos la hoja sobre un nodo y lo definimos
+                    # como nuestro elemento.
+                    if not isinstance(operand, Node):
+                        operand = Node(value=operand, right_child=None, left_child=None, position=position)
+                        operand.first_pos = [position]
+                        operand.last_pos = [position]
+                        position += 1
+
+                    # Instanciamos el nuevo nodo con un solo hijo 
+                    new_node = Node(middle_child=operand,value=item, left_child=None, right_child=None)
+                    # La primera y ultima posicion son la primera y ultima posicion de su unico hijo
+                    new_node.first_pos = operand.first_pos
+                    new_node.last_pos = operand.last_pos
+
+
+                # Add the new node to the tree stack
+                tree_stack.insert(0, new_node)
+
+        curr_node = tree_stack[0]
+        follow_pos = {}
+        node_symbol = {}
+        visit_queue = [curr_node]
+        visited = []
+        for i in range(1, position):
+            follow_pos[str(i)] = []
+
+        while len(visit_queue) != 0:
+            visit_node = visit_queue.pop()
+
+            left_child = visit_node.left_child
+            right_child = visit_node.right_child
+            middle_child = visit_node.middle_child
+
+            if visit_node.value not in ["@","*","|"]:
+                node_symbol[str(visit_node.last_pos[0])] = visit_node.value[0]
+
+            if visit_node in visited:
+                continue
+
+            if visit_node.value == "@" and left_child and right_child:
+                for lp in left_child.last_pos:
+                    for fp in right_child.first_pos:
+                        follow_pos[str(lp)].append(fp)
+
+            if visit_node.value == "*" and middle_child:
+                for lp in middle_child.last_pos:
+                    for fp in middle_child.first_pos:
+                        follow_pos[str(lp)].append(fp)
+
+            if visit_node.single_child and visit_node.middle_child is not None:
+                visit_queue.append(visit_node.middle_child)
+            elif not visit_node.single_child and visit_node.left_child is not None:
+                visit_queue.append(visit_node.left_child)
+                visit_queue.append(visit_node.right_child)
+            visited.append(visit_node)
+
+
+        self.start = curr_node.first_pos
+        self.acceptance = curr_node.last_pos
+        self.follow_pos_table = follow_pos
+        self.node_symbol = node_symbol
+
+
+    def build_transition_table_from_follow_pos(self):
+        nodes = [int(x) for x in list(self.node_symbol)]
+        nodes.sort()
+        node_index = 0
+        symbols = list(set(self.node_symbol.values()))
+        symbols.remove('#')
+        transition_table = [[[] for x in range(0,len(symbols)+2)]]
+        transition_table[0][0] = self.start
+        transition_table[0][0].sort()
+        transition_table[0][1] = 's' + str(node_index)
+        self.start = ['s' + str(node_index)]
+        new_acceptance = []
+        new_names = {}
+        symbols.sort()
+        for transition in transition_table:
+            for node in transition_table[transition_table.index(transition)][0]:
+                for n in self.follow_pos_table[str(node)]:
+                    if self.node_symbol[str(node)] == "&":
+                        b = transition_table[transition_table.index(transition)][0]
+                        b.append(n)
+                        b = list(set(b))
+                        b.sort()
+                        transition_table[transition_table.index(transition)][0] = b
+
+                    a = transition_table[transition_table.index(transition)][symbols.index(self.node_symbol[str(node)]) + 2]
+                    a.append(n)
+                    a = list(set(a))
+                    a.sort()
+                    transition_table[transition_table.index(transition)][symbols.index(self.node_symbol[str(node)]) + 2] = a
+            new_names[str(transition[0])] = transition[1]
+            for acceptance_state in self.acceptance:
+                if acceptance_state in transition[0]:
+                    new_acceptance.append(transition[1])
+            for symbol in range(2, len(symbols)+2):
+                possible_transition = transition_table[transition_table.index(transition)][symbol]
+                possible_transition.sort()
+                if possible_transition != [] and possible_transition not in [t[0] for t in transition_table]:
+                    node_index += 1
+                    new_transition = [[] for x in range(0,len(symbols)+2)]
+                    new_transition[0] = possible_transition
+                    new_transition[1] = 's' + str(node_index)
+                    transition_table.append(new_transition)
+
+        self.acceptance = new_acceptance
+
+        for transition in transition_table:
+            for i in range(2, len(symbols)+2):
+                if transition_table[transition_table.index(transition)][i] != []:
+                    transition_table[transition_table.index(transition)][i] = new_names[str(transition_table[transition_table.index(transition)][i])]
+                else:
+                    transition_table[transition_table.index(transition)][i] = ""
+        
+        
+        for i in range(0,len(transition_table)):
+            if "&" in symbols:
+                del transition_table[i][symbols.index("&") + 2]
+            del transition_table[i][0]
+
+        if "&" in symbols:
+            symbols.remove("&")
+
+        self.symbols = symbols
+        self.states = list(new_names.values())
+        self.transitions = []
+        for transition in transition_table:
+            for s in range(1,len(symbols) + 1):
+                if transition[s] != "" and type(transition[0]) is not list:
+                    self.transitions.append((transition[0],symbols[s-1],transition[s]))
+                else:
+                    self.transitions.append((new_names[str(transition[0])],symbols[s-1],transition[s]))
+
+    """
+    Esta funcion fue disenada para determinar la matriz que se utilizara posteriormente para algunos calculos
+    de la conversion de AFN a AFD.. Cabe mencionar que genera una matriz cubica estados x estados x simbolos
+    """
+    def createMatrix(self):
+        self.matrix = [[[0 for _ in range(len(self.symbols))] for _ in range(len(self.states))] for _ in
+                       range(len(self.states))]
+
+        for _ in range(len(self.transitions)):
+            self.matrix[self.states.index(self.transitions[_][0])][self.states.index(self.transitions[_][2])][
+                self.symbols.index(self.transitions[_][1])] = self.transitions[_][1]
+    
+
+    """
+    Esta funcion en otras ocasiones tambien es llamada e-closure, la cual tiene como objetivo reunir el alcance
+    de todos los estados que tiene un estado con epsilon.
+    """
+    def find3scope(self, state, transitions=[]):
+        if type(state) != list:
+            if state not in transitions:
+                transitions.append(state)
+                for _ in self.transitions:
+                    if _[0] == state and _[1] == "&":
+                        transitions = self.find3scope(_[2], transitions=transitions)
+        else:
+            for x in state:
+                if x not in transitions:
+                    transitions.append(x)
+                for _ in self.transitions:
+                    if _[0] == x and _[1] == "&":
+                        if _[2] not in transitions:
+                            transitions = self.find3scope(_[2], transitions=transitions)
+
+        return transitions
+
+    """
+    Esta funcion tiene como objetivo reunir todos los estados que procede dependiendo del simbolo que se elije.
+    """
+    def getState(self, state=[], symbol=None):
+        if state == []:
+            return []
+
+        if state == [None]:
+            return None
+
+        if symbol == None:
+            raise ValueError("Ha ocurrido un problema al momento de obtener el AFD")
+
+        newState = []
+
+        if type(state) == list:
+            for _ in state:
+                res = self.transitionTable[self.states.index(_)][self.symbols.index(symbol)]
+                if res is not None:
+                    if type(res) is list:
+                        for i in res:
+                            if i not in newState:
+                                newState.append(i)
+                    else:
+                        if self.transitionTable[self.states.index(_)][self.symbols.index(symbol)] not in newState:
+                            newState.append(self.transitionTable[self.states.index(_)][self.symbols.index(symbol)])
+        else:
+            res = self.transitionTable[self.states.index(state)][self.symbols.index(symbol)]
+            if res is not None:
+                if type(res) is list:
+                    for i in res:
+                        if i not in newState:
+                            newState.append(i)
+                else:
+                    if self.transitionTable[self.states.index(state)][self.symbols.index(symbol)] not in newState:
+                        newState.append(self.transitionTable[self.states.index(state)][self.symbols.index(symbol)])
+
+        if len(newState) >= 1:
+            return newState
+        else:
+            return None
+
+    """
+    En esta funcion se define el AFD, aqui se llaman a las dos funciones anteriores pues el nuevo AFD debe
+    contener todos los resultados posibles
+
+    El formato en que se almacena es el siguiente
+
+    [  [ Estado/s de Inicio ], [ por cada simbolo se agrega una lista [ contiene todos los estados a los que transiciona con ese simbolo ], ...  ]  ]
+    """
+    def defineAFD(self):
+        start = [self.start if type(self.start) == list else [self.start], [_ for _ in self.transitionTable[self.states.index(self.start[0])]]]
+
+        self.AFD.append(start)
+
+        actualIndex = 0
+        while True:
+            actualState = self.AFD[actualIndex][1]
+            for _ in range(len(self.symbols)):
+                actualSymbol = actualState[_]
+
+                itsOnAFD = False
+
+                for afdStatus in self.AFD:
+                    if type(actualSymbol) is list and actualSymbol == afdStatus[0]:
+                        itsOnAFD = True
+                    elif type(actualSymbol) != list and [actualSymbol] == afdStatus[0]:
+                        itsOnAFD = True
+
+                if actualSymbol == None:
+                    continue
+
+                elif itsOnAFD == False:
+                    newState = [actualSymbol if type(actualSymbol) == list else [actualSymbol],
+                                [self.getState(actualSymbol, x) for x in self.symbols]]
+                    self.AFD.append(newState)
+            actualIndex += 1
+            notFound = False
+            for _ in self.AFD:
+                for x in _[1]:
+                    if type(x) != list: x = [x]
+                    if x != [None] and x not in [y[0] for y in self.AFD]:
+                        notFound = True
+
+            if notFound == False:
+                break
+
+
+    """
+    Los procedimientos anteriores generan muchos estados sucios por los que se debe limpiar el AFD
+    """
+    def cleanAFD(self):
+        # Esta funcion debe limpiar el AFD resultante de las funciones para convertir de AFN a AFD
+        index = -1
+        if '&' in self.symbols:
+            index = self.symbols.index('&')
+        if index != -1:
+            self.changeState(index=index)
+
+    """
+    En caso un estado x tenga como unica transicion epsilon, entonces ese epsilon toma el lugar de todos los estados donde se menciona x
+    asi se reducen la cantidad de estados y se eliminan algunos problemas que pueden llegar a ocurrir.
+    """
+    def changeState(self, index):
+        remove = []
+
+        for x in self.AFD:
+            for i in self.acceptance:
+                if i in x[0]:
+                    self.AFD.remove(x)
+                    self.AFD.append(x)
+        for x in self.AFD:
+            flag = False
+            containsAcceptance = False
+            for i in x[1]:
+                if i != None and x[1].index(i) != index:
+                    flag = True
+            if flag == False and x[0] == self.start:
+                self.start = x[1][index]
+
+            for i in self.acceptance:
+                if i in x[0]:
+                    containsAcceptance = True
+
+            if flag == False and x[1][index] != None and containsAcceptance is False:
+                for i in range(len(self.AFD)):
+                    for ii in range(len(self.AFD[i][1])):
+                        if type(self.AFD[i][1][ii]) == list and sorted(self.AFD[i][1][ii]) == sorted(x[0]):
+                            self.AFD[i][1][ii] = sorted(x[1][index])
+                        elif type(self.AFD[i][1][ii]) != list and sorted([self.AFD[i][1][ii]]) == sorted(x[0]):
+                            self.AFD[i][1][ii] = sorted(x[1][index])
+                        else:
+                            pass
+                remove.append(x)
+            if flag == False and x[1][index] != None and containsAcceptance is True:
+                for i in range(len(self.AFD)):
+
+                    if self.AFD[i][0] == x[1][index]:
+                        for ii in range(len(self.symbols)):
+                            self.AFD[self.AFD.index(x)][1][ii] = self.AFD[i][1][ii]
+
+
+        for x in remove:
+            self.AFD.remove(x)
+
+    """
+    Esta es la funcion madre para el sistema de AFN a AFD, aqui se crea la tabla de transiciones, depende completamente de los indices de las listas
+    de los valores de simbolos y estados.
+
+    Tambien se llaman otras funciones como la de defineAFD o modifyStructure, entre otras.
+    """
+    def toAFD(self):
+        self.createMatrix()
+        self.transitionTable = [[None for _ in range(len(self.symbols))] for _ in range(len(self.states))]
+
+
+        for _ in range(len(self.transitions)):
+
+            startStatus = self.transitions[_][0]
+            transition = self.transitions[_][1]
+            endStatus = self.transitions[_][2]
+
+            if transition == "&":
+                endStatus = self.find3scope(endStatus, transitions=[])
+                #endStatus.append(startStatus)
+
+            if type(endStatus) is list:
+                endStatus = sorted(endStatus)
+
+            symbolIndex = self.symbols.index(transition)
+            statusIndex = self.states.index(startStatus)
+            if self.transitionTable[statusIndex][symbolIndex] is None:
+                self.transitionTable[statusIndex][symbolIndex] = endStatus
+            else:
+                if type(endStatus) is list:
+                    for i in endStatus:
+                        if i not in self.transitionTable[statusIndex][symbolIndex]:
+                            self.transitionTable[statusIndex][symbolIndex] += endStatus
+                else:
+                    self.transitionTable[statusIndex][symbolIndex] += endStatus
+        self.defineAFD()
+        self.cleanAFD()
+
+
+        newAcceptance = []
+
+        for x in self.AFD:
+            for i in self.acceptance:
+                if i in x[0] or i == self.acceptance:
+                    newAcceptance.append(x[0])
+
+        self.acceptance = newAcceptance
+
+        self.modifyStateStructure()
+
+        newStates = []
+        newTransitions = []
+        for x in self.AFD:
+            newStates.append(x[0])
+            for i in self.symbols:
+                if i != '&' and i != None:
+                    newTransitions.append((x[0], i, x[1][self.symbols.index(i)]))
+                else:
+                    for ii in self.symbols:
+                        if ii != '&' and ii != None and (x[0], ii, x[1][self.symbols.index(ii)]) not in newTransitions:
+                            newTransitions.append((x[0], ii, x[1][self.symbols.index(ii)]))
+
+        self.transitions = newTransitions
+        self.states = newStates
+
+        receive = list(set([t[2] for t in self.transitions]))
+
+        self.transitions = list(filter(lambda t: t[0] in receive or t[0] in self.start, self.transitions ))
+        self.states = list(filter(lambda t: t in receive or t in self.start, self.states ))
+
+        self.writeTxt('respuestas/Conversion_AFN_AFD.txt', self.states, self.symbols, self.start, self.acceptance,
+                      self.transitions, 'conversion')
+
+        self.represent_graph()
+
+    """
+    Ahora, para trabajar de forma mas ordenada se deben cambiar todos los esados a un mismo formato, en este caso decidimos SX
+    se debe determinar si contiene epsilon o no, pues la forma de trabajar es distinta dependiendo del escenario y luego se
+    """
+    def modifyStateStructure(self):
+        prefix = 'S'
+        index = 0
+        for x in range(len(self.AFD)):
+            state = self.AFD[x][0]
+            if state in self.acceptance:
+                self.acceptance[self.acceptance.index(state)] = prefix + str(index)
+
+            if state == self.start:
+                self.start = prefix + str(index)
+
+            for i in range(len(self.AFD)):
+                for ii in range(len(self.AFD[i][1])):
+                    if self.AFD[i][1][ii] is not None and self.AFD[x][0] is not None and sorted(self.AFD[i][1][ii]) == sorted(self.AFD[x][0]):
+                        self.AFD[i][1][ii] = prefix + str(index)
+
+                    if type(self.AFD[i][1][ii]) != list and len(self.AFD[x][0]) == 1 and self.AFD[i][1][ii] == \
+                            self.AFD[x][0][0]:
+                        self.AFD[i][1][ii] = prefix + str(index)
+
+            self.AFD[x][0] = prefix + str(index)
+
+            index += 1
+
+    """
+    Funcion que se encarga de realizar o partir los grupos dependiendo a cual correspondan.
+    """
+    def setMaker(self, dict):
+
+        statesSets, u_vals = [], []
+        for i in range(len(list(dict.items()))):
+            sT = list(dict.items())[i]  # sT => Tuple of state and its transitions
+            statesSets.append(list(sT))
+            u_vals.append(list(sT[1]))
+
+        # r_vals => repeated values
+        # u_vals => unique values (r_vals)
+        r_vals = list(set([tuple(t) for t in u_vals]))
+        r_vals = [list(t) for t in r_vals]
+
+        result = []
+        for value in r_vals:
+            new_group = [lst[0] for lst in statesSets if lst[1] == value and len(lst[1]) > 1]
+            if len(new_group) > 0:
+                result.append(new_group)
+
+        return result
+
+
+    """
+    Esta funcion tiene el objetivo de realizar de establecer a que grupo corresponde cada estado y con ello poder hacer la
+    particion de grupos posteriormente.
+    """
+    def grouping(self, subGroups, nonAccepting, symbols, transitions):
+
+        newGroups = []
+        dict = {key: [] for key in nonAccepting}
+
+        for group in subGroups:
+            if len(group) == 1: continue
+            for indx in range(len(group)):
+                for sym in symbols:
+                    for t in transitions:
+                        if group[indx] == t[0] and sym == t[1]:
+                            if t[2] in group and group[indx] in dict.keys():
+                                dict[group[indx]] += [subGroups.index(group)]
+                            else:
+                                for grp in subGroups:
+                                    if t[2] in grp and group[indx] in dict.keys():
+                                        dict[group[indx]] += [subGroups.index(grp)]
+
+        for subSet in self.setMaker(dict):
+            newGroups.append(subSet)
+
+        for group in subGroups:
+            for state in group:
+                if state not in [state for group in newGroups for state in group]:
+                    newGroups.append(group)
+
+        return newGroups
+
+
+    """
+    Esta funcion se encarga de hacer la particion de grupos hasta que se cumpla condicion en la cual la particion de grupos
+    no tenga ningún cambio y para el while loop. Obteniendo de esta forma la particion de grupos.
+    """
+    def partition(self):
+        # Start with initial partition accepting and non-accepting states
+        accepting = self.acceptance
+        nonAccepting = [i for i in self.states if i not in accepting]
+
+        # Making subsets
+        subSets = [accepting, nonAccepting]
+
+        bandera = True
+        while bandera:
+            prevGroups = subSets
+            prevSyms = nonAccepting
+            subSets = self.grouping(subSets, prevSyms, self.symbols, self.transitions)
+
+            if sorted(prevGroups) == sorted(subSets):
+                bandera = False
+
+        newSD = {key: [] for key in range(len(subSets))}
+
+        for indx in range(len(subSets)):
+            newSD[indx] += subSets[indx]
+
+        for indx in range(len(newSD.keys())):
+            lastSVal = self.states[-1][-1]
+            newVal = int(lastSVal) + indx + 1
+            newState = 'S' + str(newVal)
+            newSD[newState] = newSD.pop(indx)
+        return newSD
+    
+    def simulate_afd(self, word):
+        acceptance = False
+        state = self.start
+        for char in word:
+            # Find a possible transition
+            if char not in self.symbols:
+                return False
+            flag = False
+            for t in self.transitions:
+                if t[0] == state and t[1] == char and t[2] is not None:
+                    # found a transition - go to the next state
+                    state = t[2]
+                    flag = True
+                    break
+
+            if flag == False:
+                return False
+        if self.acceptance.count(state) > 0:
+            acceptance = True
+
+        return acceptance
+    
+    def simulate_afn(self, word):
+        self.createMatrix()
+        s = self.e_closure(self.start[0])
+        for char in word:
+            s = self.e_closures(self.move(s, char))
+        for state in s:
+            if self.acceptance.count(state) > 0: return True
+        return False
+
