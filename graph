@@ -1,30 +1,29 @@
 digraph {
-	"end (S20)" [shape=doublecircle]
-	S10
-	"end (S19)" [shape=doublecircle]
-	S9
+	"end (S23)" [shape=doublecircle]
+	"end (S25)" [shape=doublecircle]
 	"start (S0)"
+	"end (S15)" [shape=doublecircle]
+	"end (S13)" [shape=doublecircle]
 	S2
 	S3
 	S7
-	S12
-	"end (S21)" [shape=doublecircle]
-	S15
-	S4
-	S4 -> S7 [label=a]
-	S7 -> S9 [label=b]
-	"end (S21)" -> "end (S20)" [label=a]
-	"end (S19)" -> "end (S19)" [label=b]
-	S12 -> S15 [label=d]
-	S9 -> S12 [label=c]
-	S15 -> "end (S21)" [label=e]
-	"start (S0)" -> S3 [label=c]
-	S3 -> S10 [label=d]
-	S2 -> S7 [label=a]
+	S6
+	"end (S25)" -> "end (S25)" [label=a]
+	"end (S13)" -> "end (S23)" [label=a]
+	"end (S23)" -> S6 [label=a]
+	"end (S15)" -> S2 [label=a]
 	"start (S0)" -> S2 [label=a]
-	"end (S20)" -> "end (S20)" [label=a]
-	S10 -> S4 [label=e]
-	"end (S21)" -> "end (S19)" [label=b]
-	S4 -> S3 [label=c]
-	S2 -> S9 [label=b]
+	S7 -> "end (S23)" [label=a]
+	"end (S13)" -> "end (S15)" [label=b]
+	S6 -> "end (S13)" [label=b]
+	S2 -> S7 [label=b]
+	"end (S15)" -> S3 [label=b]
+	"start (S0)" -> S3 [label=b]
+	S7 -> "end (S15)" [label=b]
+	S3 -> S2 [label=a]
+	"end (S25)" -> "end (S13)" [label=b]
+	S2 -> S6 [label=a]
+	S6 -> "end (S25)" [label=a]
+	S3 -> S3 [label=b]
+	"end (S23)" -> S7 [label=b]
 }

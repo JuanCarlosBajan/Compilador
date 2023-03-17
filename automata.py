@@ -756,11 +756,19 @@ class Automata:
         self.transitions = list(set(newTransitions))
         self.states = list(set(newStates))
 
-        receive = list(set([t[2] for t in self.transitions]))
-
-        self.transitions = list(filter(lambda t: t[0] in receive or t[0] in self.start, self.transitions ))
-        self.states = list(filter(lambda t: t in receive or t in self.start, self.states ))
-
+        lastreceive = []
+        while True:
+            clean_transitions = list(filter(lambda t: t[0] != t[2], self.transitions))
+            receive = list(set([t[2] for t in clean_transitions]))
+            receive = list(filter(lambda r: r != None, receive))
+            self.transitions = list(filter(lambda t: (t[0] in receive or t[0] in self.start) and t[2] != None, self.transitions ))
+            self.states = list(filter(lambda t: t in receive or t in self.start, self.states ))
+            if len(lastreceive) == 0:
+                lastreceive.append(len(receive))
+            else:
+                if lastreceive[-1] == len(receive):
+                    break
+                lastreceive.append(len(receive))
         self.writeTxt('respuestas/Conversion_AFN_AFD.txt', self.states, self.symbols, self.start, self.acceptance,
                       self.transitions, 'conversion')
 
@@ -833,12 +841,14 @@ class Automata:
                     for t in transitions:
                         if group[indx] == t[0] and sym == t[1]:
                             if t[2] in group and group[indx] in dict.keys():
+                                #print(dict)
                                 dict[group[indx]] += [subGroups.index(group)]
                             else:
                                 for grp in subGroups:
                                     if t[2] in grp and group[indx] in dict.keys():
+                                        #print(dict)
                                         dict[group[indx]] += [subGroups.index(grp)]
-
+        #print(subGroups)
         for subSet in self.setMaker(dict):
             newGroups.append(subSet)
 
@@ -857,16 +867,64 @@ class Automata:
     def partition(self):
         # Start with initial partition accepting and non-accepting states
         accepting = self.acceptance
+        acc = []
+        for a in accepting:
+            if len(acc) == 0:
+                acc.append([a])
+            else:
+                found = False
+                for a2 in acc:
+                    transitions_satisfied = list(filter(lambda x: x[0] in a2,self.transitions))
+                    state_transitions = list(filter(lambda x: x[0] == a,self.transitions))
+                    state_symbols = [t[1] for t in state_transitions]
+                    flag = False
+                    for t in transitions_satisfied:
+                        if t[1] in state_symbols:
+                            flag = True
+                    if flag == False:
+                        acc[acc.index(a2)].append(a)
+                        found = True
+                if found == False:
+                    acc.append([a])
+
+
         nonAccepting = [i for i in self.states if i not in accepting]
 
         # Making subsets
-        subSets = [accepting, nonAccepting]
+        subSets = []
+        for a in acc:
+            subSets.append(a)
+        subSets.append(nonAccepting)
 
+        ind = 0
+        for s in subSets:
+            for s1 in s:
+                for s2 in s:
+                    if s1 != s2:
+                        remove = False
+                        for t in self.transitions:
+                            if t[0] == s1 and t[2] == s2 and not remove:
+                                added = False
+                                for s3 in subSets:
+                                    if s3 != s and s3[0] not in self.acceptance and added == False and s2 not in s3 and subSets.index(s3) > ind:
+                                        subSets[subSets.index(s3)].append(s2)
+                                        subSets[subSets.index(s)].remove(s2)
+                                        print(subSets)
+                                        remove = True
+                                        added = True
+                                if not added:
+                                    subSets.append([s2])
+                                    subSets[subSets.index(s)].remove(s2)
+                                    remove = True
+            ind+= 1
+        print(subSets)
         bandera = True
         while bandera:
             prevGroups = subSets
             prevSyms = nonAccepting
             subSets = self.grouping(subSets, prevSyms, self.symbols, self.transitions)
+
+            #print(sorted(prevGroups),sorted(subSets))
 
             if sorted(prevGroups) == sorted(subSets):
                 bandera = False
@@ -883,6 +941,98 @@ class Automata:
             newSD[newState] = newSD.pop(indx)
         return newSD
     
+    def min(self):
+        # Creamos una tabla de equivalencia para los estados
+        table = [[True] * len(self.states) for _ in range(len(self.states))]
+        
+        # Marcamos los estados finales e no finales como no equivalentes
+        for i in range(len(self.states)):
+            for j in range(len(self.states)):
+                if (self.states[i] in self.acceptance) != (self.states[j] in self.acceptance):
+                    table[i][j] = False
+        
+        # Procesamos la tabla de equivalencia
+        changed = True
+        while changed:
+            changed = False
+            for i in range(len(self.states)):
+                for j in range(i+1, len(self.states)):
+                    if table[i][j]:
+                        for symbol in self.symbols:
+                            next_state_i = list(filter(lambda t: t[0] == self.states[i] and t[1] == symbol, self.transitions))
+                            next_state_j = list(filter(lambda t: t[0] == self.states[j] and t[1] == symbol, self.transitions))
+                            #print(next_state_i)
+                            #print(next_state_j)
+                            if next_state_i and next_state_j and next_state_i != next_state_j:
+                                if table[self.states.index(next_state_i[0][2])][self.states.index(next_state_j[0][2])]:
+                                    table[self.states.index(next_state_i[0][2])][self.states.index(next_state_j[0][2])] = False
+                                    changed = True
+        # Agrupamos los estados equivalentes
+        equivalent_states = []
+        visited = [False] * len(self.states)
+        for i in range(len(self.states)):
+            if not visited[i]:
+                group = [self.states[i]]
+                visited[i] = True
+                for j in range(i+1, len(self.states)):
+                    if table[i][j]:
+                        group.append(self.states[j])
+                        visited[j] = True
+                equivalent_states.append(group)
+
+        print(equivalent_states)
+        # Creamos el autómata mínimo
+        new_states = []
+        new_initial_state = None
+        new_final_states = []
+        new_transitions = {}
+        
+        for group in equivalent_states:
+            new_state = tuple(sorted(group))
+            new_states.append(new_state)
+            flag = False
+            for st in self.start:
+                if st in group:
+                    flag = True
+            if flag:
+                new_initial_state = new_state
+            if any(state in self.acceptance for state in group):
+                new_final_states.append(new_state)
+            for symbol in self.symbols:
+                next_state = next_state_i = list(filter(lambda t: t[0] == group[0] and t[1] == symbol, self.transitions))
+                for other_group in equivalent_states:
+                    if next_state and next_state[0][2] in other_group:
+                        new_next_state = tuple(sorted(other_group))
+                        new_transitions[(new_state, symbol)] = new_next_state
+
+        prefix = 'q'
+        state_map = {}
+        for i, group in enumerate(new_states):
+            new_name = prefix + str(i)
+            state_map[group] = new_name
+        
+        # Creamos un nuevo autómata con los estados renombrados
+        new_states_2 = [state_map[state] for state in new_states]
+        new_initial_state_2 = state_map[new_initial_state]
+        new_final_states_2 = [state_map[state] for state in new_final_states]
+        new_transitions_2 = {}
+        for (old_state, symbol), new_state in new_transitions.items():
+            new_transitions_2[(state_map[old_state], symbol)] = state_map[new_state]
+
+        transitions_list = []
+        for (state, symbol), next_state in new_transitions_2.items():
+            transitions_list.append((state, symbol, next_state))
+
+        print(new_states_2)
+        print(new_initial_state_2)
+        print(new_final_states_2)
+        print(new_transitions_2)
+        self.states = new_states_2
+        self.start = [new_initial_state_2]
+        self.acceptance = new_final_states_2
+        self.transitions = transitions_list
+
+
     def simulate_afd(self, word):
         acceptance = False
         state = self.start[0]
@@ -969,3 +1119,9 @@ class Automata:
 
         self.writeTxt('respuestas/Minimizacion_AFD.txt', newStates, newSyms, newStart, newAcceptance,
                       newTransitions, 'mini', statesD)
+        
+        self.states = newStates
+        self.symbols = newSyms
+        self.start = newStart
+        self.acceptance = newAcceptance
+        self. transitions = newTransitions

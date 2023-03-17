@@ -33,7 +33,6 @@ def afd_from_afn_from_regex():
     try:
         regex = Regex(regex)
         automata = Automata(automata_type="afd_from_afn_from_regex", regex=regex)
-        automata.minimizeAFD(automata.partition())
         automata.represent_graph()
 
         cadena = str(input('Ingrese cadena para simular afd :'))
@@ -52,7 +51,6 @@ def afd_from_regex():
     try:
         regex = Regex(regex)
         automata = Automata(automata_type="afd_from_regex", regex=regex)
-        #automata.minimizeAFD(automata.partition())
         automata.represent_graph()
 
         cadena = str(input('Ingrese cadena para simular afd :'))
