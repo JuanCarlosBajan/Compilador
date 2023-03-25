@@ -1,15 +1,13 @@
-ESTADOS = ['S4', 'S5', 'S6', 'S7']
+ESTADOS = ['S4', 'S5', 'S6']
 SIMBOLOS = ['a', 'b', 'c']
-INICIO = ['S4']
+INICIO = ['S5']
 ACEPTACION = ['S6']
-TRANSICIONES = [('S4', 'a', 'S7'),
-				('S4', 'b', 'S5'),
+TRANSICIONES = [('S4', 'a', 'S4'),
+				('S4', 'b', 'S4'),
 				('S4', 'c', 'S6'),
-				('S5', 'b', 'S5'),
-				('S5', 'c', 'S6'),
-				('S7', 'a', 'S7'),
-				('S7', 'c', 'S6')]
-NUEVA REPRESENTACION DE ESTADOS = {'S4': ['s0'],
-								   'S5': ['s2'],
-								   'S6': ['s3'],
-								   'S7': ['s1']}
+				('S5', 'a', 'S4'),
+				('S5', 'b', 'S4'),
+				('S5', 'c', 'S6')]
+NUEVA REPRESENTACION DE ESTADOS = {'S4': ['s1', 's2'],
+								   'S5': ['s0'],
+								   'S6': ['s3']}

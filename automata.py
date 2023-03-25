@@ -1,5 +1,6 @@
 from node import Node
 from graphviz import Digraph
+from itertools import groupby
 
 
 class Automata:
@@ -896,7 +897,7 @@ class Automata:
             subSets.append(a)
         subSets.append(nonAccepting)
 
-        ind = 0
+        """ ind = 0
         for s in subSets:
             for s1 in s:
                 for s2 in s:
@@ -916,7 +917,7 @@ class Automata:
                                     subSets.append([s2])
                                     subSets[subSets.index(s)].remove(s2)
                                     remove = True
-            ind+= 1
+            ind+= 1 """
         print(subSets)
         bandera = True
         while bandera:
@@ -943,94 +944,96 @@ class Automata:
     
     def min(self):
         # Creamos una tabla de equivalencia para los estados
-        table = [[True] * len(self.states) for _ in range(len(self.states))]
+        states = sorted(self.states)
+        acceptance = self.acceptance
+        transitions = self.transitions
+        symbols = self.symbols
+        start = self.start
         
-        # Marcamos los estados finales e no finales como no equivalentes
-        for i in range(len(self.states)):
-            for j in range(len(self.states)):
-                if (self.states[i] in self.acceptance) != (self.states[j] in self.acceptance):
-                    table[i][j] = False
+        table = [[False for x in states] for i in states]
+
+        for i in range(0,len(states)):
+            for j in range(i+1,len(states)):
+                des = 0
+                des += 1 if states[i] in acceptance else 0
+                des += 1 if states[j] in acceptance else 0
+                if des == 1:
+                    table[i][j] = True
+
+        while True:
+            new_table = [x.copy() for x in table]
+
+            for i in range(0,len(states)):
+                for j in range(i+1,len(states)):
+                    if not new_table[i][j]:
+                        for s in symbols:
+                            t = [x[2] for x in list(filter(lambda x: (x[0] == states[i] or x[0] == states[j]) and x[1] == s, transitions))]
+                            t = sorted(t)
+                            print(t)
+                            if len(t) == 2:
+                                indexes = []
+                                indexes.append(states.index(t[0]))
+                                indexes.append(states.index(t[1]))
+                                indexes.sort()
+                                if indexes[1] > indexes[0] and new_table[indexes[0]][indexes[1]]:
+                                    new_table[i][j] = True
+            if new_table != table:
+                table = [x.copy() for x in new_table]
+            else:
+                break
+        for x in table:
+            print (x)
+        equiv = []
         
-        # Procesamos la tabla de equivalencia
-        changed = True
-        while changed:
-            changed = False
-            for i in range(len(self.states)):
-                for j in range(i+1, len(self.states)):
-                    if table[i][j]:
-                        for symbol in self.symbols:
-                            next_state_i = list(filter(lambda t: t[0] == self.states[i] and t[1] == symbol, self.transitions))
-                            next_state_j = list(filter(lambda t: t[0] == self.states[j] and t[1] == symbol, self.transitions))
-                            #print(next_state_i)
-                            #print(next_state_j)
-                            if next_state_i and next_state_j and next_state_i != next_state_j:
-                                if table[self.states.index(next_state_i[0][2])][self.states.index(next_state_j[0][2])]:
-                                    table[self.states.index(next_state_i[0][2])][self.states.index(next_state_j[0][2])] = False
-                                    changed = True
-        # Agrupamos los estados equivalentes
-        equivalent_states = []
-        visited = [False] * len(self.states)
-        for i in range(len(self.states)):
-            if not visited[i]:
-                group = [self.states[i]]
-                visited[i] = True
-                for j in range(i+1, len(self.states)):
-                    if table[i][j]:
-                        group.append(self.states[j])
-                        visited[j] = True
-                equivalent_states.append(group)
-
-        print(equivalent_states)
-        # Creamos el autómata mínimo
-        new_states = []
-        new_initial_state = None
-        new_final_states = []
-        new_transitions = {}
+        for i in range(0,len(states)):
+                e = [states[i]]
+                for j in range(i+1,len(states)):
+                    if not new_table[i][j]:
+                        e.append(states[j])
+                if len(e)>1:
+                    equiv.append(e)
+        print(equiv)
+        equiv.sort(key=len)
+    
+        # Recorrer las sublistas y eliminar los subconjuntos
+        for i in range(len(equiv)-1):
+            for j in range(i+1, len(equiv)):
+                if set(equiv[i]).issubset(set(equiv[j])):
+                    equiv[i] = []
+                    break
         
-        for group in equivalent_states:
-            new_state = tuple(sorted(group))
-            new_states.append(new_state)
-            flag = False
-            for st in self.start:
-                if st in group:
-                    flag = True
-            if flag:
-                new_initial_state = new_state
-            if any(state in self.acceptance for state in group):
-                new_final_states.append(new_state)
-            for symbol in self.symbols:
-                next_state = next_state_i = list(filter(lambda t: t[0] == group[0] and t[1] == symbol, self.transitions))
-                for other_group in equivalent_states:
-                    if next_state and next_state[0][2] in other_group:
-                        new_next_state = tuple(sorted(other_group))
-                        new_transitions[(new_state, symbol)] = new_next_state
+        # Devolver la equiv sin los subconjuntos
+        equiv = [subequiv for subequiv in equiv if subequiv]
+        print(equiv)
 
-        prefix = 'q'
-        state_map = {}
-        for i, group in enumerate(new_states):
-            new_name = prefix + str(i)
-            state_map[group] = new_name
+
+        ind = 0
+        for eq in equiv:
+            new_state = "eq"+str(ind)
+            states.append(new_state)
+            for s in eq:
+                for t in transitions:
+                    if t[0] in s and t[2] not in s:
+                        transitions.append((new_state,t[1],t[2]))
+                    elif t[2] in s and t[0] not in s:
+                        transitions.append((t[0],t[1],new_state))
+                    elif t[2] in s and t[0] in s:
+                        transitions.append((new_state,t[1],new_state))
+                transitions = list(filter(lambda t: t[0] != s and t[2] != s, transitions))
+                if s in acceptance:
+                    acceptance.remove(s)
+                    acceptance.append(new_state)
+                if s in start:
+                    start.remove(s)
+                    start.append(new_state)
+                states.remove(s)
+            ind += 1
+        #self.transitions = list(set(transitions))
+        #self.acceptance = list(set(acceptance))
+        #self.start = list(set(start))
+        #self.states = list(set(states))
+
         
-        # Creamos un nuevo autómata con los estados renombrados
-        new_states_2 = [state_map[state] for state in new_states]
-        new_initial_state_2 = state_map[new_initial_state]
-        new_final_states_2 = [state_map[state] for state in new_final_states]
-        new_transitions_2 = {}
-        for (old_state, symbol), new_state in new_transitions.items():
-            new_transitions_2[(state_map[old_state], symbol)] = state_map[new_state]
-
-        transitions_list = []
-        for (state, symbol), next_state in new_transitions_2.items():
-            transitions_list.append((state, symbol, next_state))
-
-        print(new_states_2)
-        print(new_initial_state_2)
-        print(new_final_states_2)
-        print(new_transitions_2)
-        self.states = new_states_2
-        self.start = [new_initial_state_2]
-        self.acceptance = new_final_states_2
-        self.transitions = transitions_list
 
 
     def simulate_afd(self, word):
