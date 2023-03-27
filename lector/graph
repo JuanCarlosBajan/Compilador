@@ -1,0 +1,29 @@
+digraph {
+	"end (S4)" [shape=doublecircle]
+	"end (S16)" [shape=doublecircle]
+	"end (S18)" [shape=doublecircle]
+	"start (S0)"
+	"end (S5)" [shape=doublecircle]
+	"end (S2)" [shape=doublecircle]
+	S9
+	"end (S15)" [shape=doublecircle]
+	S13
+	"end (S20)" [shape=doublecircle]
+	"end (S24)" [shape=doublecircle]
+	S14
+	"end (S6)" [shape=doublecircle]
+	"start (S0)" -> "end (S15)" [label=c]
+	S14 -> S9 [label=b]
+	"start (S0)" -> "end (S6)" [label=i]
+	"start (S0)" -> "end (S18)" [label=e]
+	"start (S0)" -> "end (S5)" [label=f]
+	"start (S0)" -> "end (S4)" [label=d]
+	S9 -> S13 [label=c]
+	"start (S0)" -> "end (S16)" [label=h]
+	"start (S0)" -> "end (S2)" [label=b]
+	"end (S24)" -> S14 [label=a]
+	"start (S0)" -> "end (S20)" [label=a]
+	S13 -> "end (S24)" [label=d]
+	"start (S0)" -> "end (S5)" [label=g]
+	"end (S20)" -> S9 [label=b]
+}
