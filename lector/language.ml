@@ -1,10 +1,1 @@
-let for = "for"
-let openParenthesis = "("
-let closeParenthesis = ")"
-let variable = [asd]
-let variable1 = "h"|"o"|"l"|"a"
-let variable2 = "hola"*
-let variable3 = "hola"?
-let variable4 = "h"|"o"|"l"|"a" "h"|"o"|"l"|"a"|"2"
-let variable5 = "holis"|"papaya" "asumaquina"
-let variable6 = [abcde]|[fghi]|"abcd"+
+let closeParenthesis = "("

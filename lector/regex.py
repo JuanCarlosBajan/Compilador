@@ -22,7 +22,7 @@ class Regex:
 
         for i in range(0,len(tokens)):
 
-            if tokens[i] not in ['*','|',')','+','?','(','&', 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9', '&']:
+            if tokens[i] not in ['*','|',')','+','?','(','&', 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9', '&', '.', 'E']:
                 print('Error en la expresión regular ingresada. El operador {} no es aceptado.'.format(tokens[i]))
                 errors+=1
             if i == 0 and tokens[i] in ['*','|',')','+','?']:
@@ -124,5 +124,4 @@ class Regex:
         self.translateIndentities()
         if regex_to_afd:
             self.expression+= "@#"
-        print(self.expression)
         return self.toPosfix()

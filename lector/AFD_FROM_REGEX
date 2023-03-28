@@ -1,7 +1,0 @@
-ESTADOS = ['s0', 's1', 's2', 's3']
-SIMBOLOS = ['f', 'o', 'r']
-INICIO = ['s0']
-ACEPTACION = ['s3']
-TRANSICIONES = [('s0', 'f', 's1'),
-				('s1', 'o', 's2'),
-				('s2', 'r', 's3')]

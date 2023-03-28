@@ -117,7 +117,7 @@ class Automata:
 
     def afn_from_regex(self,regex):
         posfixExpression = regex.toPosfix()
-        print(f"La expresión postfix es: {posfixExpression}")
+        print(f"La expresión es: {regex.expression}")
         regex_splitted = [char for char in posfixExpression]
         stack = []
         current_status = 0
@@ -996,8 +996,6 @@ class Automata:
                 table = [x.copy() for x in new_table]
             else:
                 break
-        for x in table:
-            print (x)
         equiv = []
         
         for i in range(0,len(states)):
@@ -1007,7 +1005,6 @@ class Automata:
                         e.append(states[j])
                 if len(e)>1:
                     equiv.append(e)
-        print(equiv)
         equiv.sort(key=len)
     
         # Recorrer las sublistas y eliminar los subconjuntos
@@ -1019,7 +1016,6 @@ class Automata:
         
         # Devolver la equiv sin los subconjuntos
         equiv = [subequiv for subequiv in equiv if subequiv]
-        print(equiv)
 
 
         ind = 0
