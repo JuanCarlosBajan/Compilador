@@ -33,42 +33,7 @@ def define_regex(expression):
                 ## Manejo del token """
                 return errors, Automata(automata_type=expression), expression
             else:
-                expression = list(expression)
-                new_expression_list = []
-                indexes = []
-                parenthesis_count = 0
-                start_idx = -1
-                end_idx = -1
-                for i in range(0,len(expression)):
-                    if expression[i] == "(":
-                        if start_idx == -1:
-                            start_idx = i
-                        parenthesis_count += 1
-
-                    if expression[i] == ")":
-                        parenthesis_count -= 1
-                    
-                    if parenthesis_count == 0 and start_idx != -1:
-                        end_idx = i
-                        
-                    if start_idx != -1 and end_idx != -1:
-                        indexes.append([start_idx, end_idx])
-                        start_idx = -1
-                        end_idx = -1
-                for i in range(0,len(indexes)):
-
-                    if i == 0 and indexes[i] !=0:
-                        if len(expression[0:indexes[i][0]]) > 0: 
-                            new_expression_list+= ''.join(expression[0:indexes[i][0]])
-                    new_expression_list+= "(" + define_regex([''.join(expression[indexes[i][0]+1: indexes[i][1]]) ])[2].expression + ")"
-                    
-                    if i < len(indexes)-1:
-                        new_expression_list+= ''.join(expression[indexes[i][1]+1: indexes[i+1][0]])
-                    if i == len(indexes)-1:
-                        new_expression_list+=''.join(expression[indexes[i][1]+1:])
-                expression = ''.join(new_expression_list)
-                expression=expression.replace("@","")
-                expression=expression.replace("#","")
+                pass
         if any(elemento in list(expression) for elemento in special_chars): ## []-'#
 
             ## Voy a dejar el # pendiente porque no se como utilizarlo la verdad
@@ -162,6 +127,15 @@ errors = []
 
 while "" in content:
         content.remove("")
+
+
+
+
+
+
+
+
+
 
 for i in range(0,len(content)):
     temporal = content[i].split(" ")
