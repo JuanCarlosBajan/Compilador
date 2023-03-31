@@ -7,4 +7,4 @@ let variable2 = "hola"*
 let variable3 = "hola"?
 let variable4 = "h"|"o"|"l"|"a" "h"|"o"|"l"|"a"|"2"
 let variable5 = "holis"|"papaya" "asumaquina"
-let variable6 = [0-9]+ (.[0-9]+)? (E[ml]?[0-9]+)?
+let variable6 = (asd) [0-9]+ (.[0-9]+)? (E[ml]?[0-9]+)?

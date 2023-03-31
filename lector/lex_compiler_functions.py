@@ -1,3 +1,8 @@
+from regex import Regex
+from automata import Automata
+
+
+
 def parenthesis_manager(expression):
 
     """ Definimos las variables que nos van a funcionar para manejar la identificacion de parentesis """
@@ -15,13 +20,15 @@ def parenthesis_manager(expression):
     donde sumamos y restamos unos."""
     for i in range(0,len(expression)):
         if expression[i] == "(":
-            if start_idx == -1:
-                start_idx = i
-            parenthesis_stack += 1
+            if i in [0,1] or not (i>1 and expression[i-1] == ":" and expression[i-2] == "/"):
+                if start_idx == -1:
+                    start_idx = i
+                parenthesis_stack += 1
 
 
         if expression[i] == ")":
-            parenthesis_stack -= 1
+            if i in [0,1] or not (i>1 and expression[i-1] == ":" and expression[i-2] == "/"):
+                parenthesis_stack -= 1
         
         if parenthesis_stack < 0:
             print("Error en parentesis, se ha encontrado ) antes de un (")
@@ -47,7 +54,7 @@ def parenthesis_manager(expression):
 
         if i == 0 and indexes[0][0] > 0:
             new_expression_list += expression[0:indexes[0][0]]
-        new_expression_list+= "(" + read_expression(''.join(expression[indexes[i][0]+1:indexes[i][1]])) +")"
+        new_expression_list+= "/:(" + read_expression(''.join(expression[indexes[i][0]+1:indexes[i][1]])) +"/:)"
 
         if i + 1 < len(indexes):
             new_expression_list += ''.join(expression[indexes[i][1]+1:indexes[i+1][0]])
@@ -68,7 +75,7 @@ def concatenation_manager(expression):
 
     """ Por cada sub_expresion encontrada la enviamos a analizar de nuevo a read_expression """
     for sub_exp in expression:
-        new_expression_list+= "(" + read_expression(sub_exp) + ")"
+        new_expression_list+= "/:(" + read_expression(sub_exp) + "/:)"
 
     return ''.join(new_expression_list)
 
@@ -98,27 +105,27 @@ def brackets_content_manager(content):
 
         new_content = ""
         if len(chars) > 1:
-            new_content = "(" + chars[0] + ")" + "|"
+            new_content = "/:(" + chars[0] + "/:)" + "|"
             for ci in range(1,len(chars)):
                 if ci != len(chars) -1:
-                    new_content+= "(" + chars[ci] + ")" + "|"
+                    new_content+= "/:(" + chars[ci] + "/:)" + "|"
                 else:
-                    new_content += "(" + chars[ci] + ")"
+                    new_content += "/:(" + chars[ci] + "/:)"
         else:
-            new_content = "(" + chars[0] + ")"
+            new_content = "/:(" + chars[0] + "/:)"
         
         content = new_content
     else:
         new_content = ""
         if len(content) > 1:
-            new_content = "(" + content[0] + ")" + "|"
+            new_content = "/:(" + content[0] + "/:)" + "|"
             for ci in range(1,len(content)):
                 if ci != len(content) -1:
-                    new_content+= "(" + content[ci] + ")" + "|"
+                    new_content+= "/:(" + content[ci] + "/:)" + "|"
                 else:
-                    new_content += "(" + content[ci] + ")"
+                    new_content += "/:(" + content[ci] + "/:)"
         else:
-            new_content = "(" + content[0] + ")"
+            new_content = "/:(" + content[0] + "/:)"
         
         content = new_content
 
@@ -156,7 +163,7 @@ def brackets_manager(expression):
 
         if i == 0 and indexes[0][0] > 0:
             new_expression_list += expression[0:indexes[0][0]]
-        new_expression_list+= "(" + brackets_content_manager(''.join(expression[indexes[i][0]+1:indexes[i][1]])) +")"
+        new_expression_list+= "/:(" + brackets_content_manager(''.join(expression[indexes[i][0]+1:indexes[i][1]])) +"/:)"
 
         if i + 1 < len(indexes):
             new_expression_list += ''.join(expression[indexes[i][1]+1:indexes[i+1][0]])
@@ -177,8 +184,10 @@ def quotation_marks_manager(expression):
 
     return ''.join(expression)
 
+variables = {}
 
 def read_expression(expression):
+
 
     """ Hallamos la cantidad de parentesis que hay en la expresion """
     p_count = 0
@@ -222,6 +231,18 @@ def read_expression(expression):
     if bracket_count == 1:
         print("Error de Corchete, la cantidad de [ y ] difieren")
 
+    is_variable = any(elemento in list(expression) for elemento in ["[","]","(",")","#","*","+","?","'",'"',"^","|"])
+    variable = ''.join(expression)
+    if not is_variable:
+        if variable in variables.keys():
+            resp = variables[variable]
+            resp = resp.replace("(","/:(")
+            resp = resp.replace(")","/:)")
+            return resp
+        else:
+            print("Error de variable, '" + variable + "' no se ha instanciado anteriormente")
+            return "error"
+
     qm_count = 0
     for char in expression:
         if char in ['"',"'"]:
@@ -239,5 +260,43 @@ def read_expression(expression):
     if qm_count == 1:
         print('Error de ", la cantidad de "')
 
-    print(expression)
     return expression
+
+def reader(file):
+    content = ""
+    errors = []
+
+    with open(file, "r") as file:
+        content = file.read()
+        content = content.split("\n")
+    
+    for i in range(0,len(content)):
+        temporal = content[i].split(" ")
+
+        foundError = False
+
+        while "" in temporal:
+            temporal.remove("")
+
+        if len(temporal) < 4:
+            errors.append([i,"No se declaró correctamente el token"])
+        
+        if temporal[0] != "let":
+            errors.append([i,"No se declaró correctamente el token (missing let)"])
+
+        if temporal[2] != "=":
+            errors.append([i,"No se declaró correctamente el token (missing =)"])
+
+        regex = read_expression(' '.join(temporal[3:]))
+        regex = regex.replace("/:","")
+
+        if not foundError:
+            variables[temporal[1]] = regex
+            temporal = (temporal[1],regex)
+            content[i] = temporal
+
+        regex = Regex(regex)
+        automata = Automata(automata_type="afd_from_afn_from_regex",regex=regex)
+        print(automata.simulate_afd("0.01"))
+
+    #for x in content: print(x)
