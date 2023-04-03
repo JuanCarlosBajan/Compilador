@@ -297,6 +297,6 @@ def reader(file):
 
         regex = Regex(regex)
         automata = Automata(automata_type="afd_from_afn_from_regex",regex=regex)
-        print(automata.simulate_afd("0.01"))
+        print(automata.simulate_afd("0.01Es3"))
 
     #for x in content: print(x)
