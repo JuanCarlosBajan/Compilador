@@ -3,7 +3,7 @@ from automata import Automata
 
 
 
-def parenthesis_manager(expression):
+def parenthesis_manager(expression, errors):
 
     """ Definimos las variables que nos van a funcionar para manejar la identificacion de parentesis """
     expression = list(expression)
@@ -31,7 +31,7 @@ def parenthesis_manager(expression):
                 parenthesis_stack -= 1
         
         if parenthesis_stack < 0:
-            print("Error en parentesis, se ha encontrado ) antes de un (")
+            errors.append("Error en parentesis, se ha encontrado ) antes de un (")
         
         if parenthesis_stack == 0 and start_idx != -1:
             end_idx = i
@@ -54,7 +54,7 @@ def parenthesis_manager(expression):
 
         if i == 0 and indexes[0][0] > 0:
             new_expression_list += expression[0:indexes[0][0]]
-        new_expression_list+= "/:(" + read_expression(''.join(expression[indexes[i][0]+1:indexes[i][1]])) +"/:)"
+        new_expression_list+= "/:(" + read_expression(''.join(expression[indexes[i][0]+1:indexes[i][1]]), errors) +"/:)"
 
         if i + 1 < len(indexes):
             new_expression_list += ''.join(expression[indexes[i][1]+1:indexes[i+1][0]])
@@ -65,7 +65,7 @@ def parenthesis_manager(expression):
     return ''.join(new_expression_list)
         
 
-def concatenation_manager(expression):
+def concatenation_manager(expression, errors):
 
     """ Dividimos la expresion en todas las concatenaciones indicadas a traves del espacio. Cabe resaltar
      que, dado que definimos a los parentesis de una importancia mayor, el manejar los parentesis antes que los
@@ -75,11 +75,11 @@ def concatenation_manager(expression):
 
     """ Por cada sub_expresion encontrada la enviamos a analizar de nuevo a read_expression """
     for sub_exp in expression:
-        new_expression_list+= "/:(" + read_expression(sub_exp) + "/:)"
+        new_expression_list+= "/:(" + read_expression(sub_exp, errors) + "/:)"
 
     return ''.join(new_expression_list)
 
-def brackets_content_manager(content):
+def brackets_content_manager(content, errors):
     content = content.split("'")
     while '' in content:
         content.remove('')
@@ -94,7 +94,7 @@ def brackets_content_manager(content):
                     start = content[i-1]
                     end = content[i+1]
                     if start not in order or end not in order:
-                        print("Uno de los elementos en character-set no es aceptado")
+                        errors.append("Uno de los elementos en character-set no es aceptado")
                     else:
                         start_idx = order.index(start)
                         end_idx = order.index(end)
@@ -131,7 +131,7 @@ def brackets_content_manager(content):
 
     return ''.join(content)
 
-def brackets_manager(expression):
+def brackets_manager(expression, errors):
     expression = list(expression)
     new_expression_list = []
     indexes = []
@@ -149,7 +149,7 @@ def brackets_manager(expression):
             brackets_stack -= 1
         
         if brackets_stack < 0:
-            print("Error en parentesis, se ha encontrado ] antes de un [")
+            errors.append("Error en corchete, se ha encontrado ] antes de un [")
         
         if brackets_stack == 0 and start_idx != -1:
             end_idx = i
@@ -163,7 +163,7 @@ def brackets_manager(expression):
 
         if i == 0 and indexes[0][0] > 0:
             new_expression_list += expression[0:indexes[0][0]]
-        new_expression_list+= "/:(" + brackets_content_manager(''.join(expression[indexes[i][0]+1:indexes[i][1]])) +"/:)"
+        new_expression_list+= "/:(" + brackets_content_manager(''.join(expression[indexes[i][0]+1:indexes[i][1]]), errors) +"/:)"
 
         if i + 1 < len(indexes):
             new_expression_list += ''.join(expression[indexes[i][1]+1:indexes[i+1][0]])
@@ -174,8 +174,10 @@ def brackets_manager(expression):
     return ''.join(new_expression_list)
 
 
-def quotation_marks_manager(expression):
+def quotation_marks_manager(expression, errors):
+
     expression = list(expression)
+    
     while '"' in expression:
         expression.remove('"')
 
@@ -185,8 +187,9 @@ def quotation_marks_manager(expression):
     return ''.join(expression)
 
 variables = {}
+acciones = {}
 
-def read_expression(expression):
+def read_expression(expression, errors):
 
 
     """ Hallamos la cantidad de parentesis que hay en la expresion """
@@ -197,7 +200,7 @@ def read_expression(expression):
 
     """ Si hay mas de un parentesis llamamos a la funcion que los maneja """
     if p_count > 1:
-        expression = parenthesis_manager(expression = expression)
+        expression = parenthesis_manager(expression, errors)
 
     """ ¿Que pasa si solo se encuentra un parentesis? """
     if p_count == 1:
@@ -206,7 +209,7 @@ def read_expression(expression):
 
     """ ¿Que pasa si hay mas '(' que ')' o viceversa? """
     if p_count != 1 and p_count%2 != 0:
-        print("Error de Parentesis, la cantidad de ( y ) difieren")
+        errors.append("Error de Parentesis, la cantidad de ( y ) difieren")
     
     """ Encontramos la cantidad de espacios que hay en la expresion """
     space_count = 0
@@ -216,7 +219,7 @@ def read_expression(expression):
 
     """ Si encontramos al menos un espacio en la expresion, lo enviamos a la funcion que los maneja """
     if space_count > 0:
-        expression = concatenation_manager(expression = expression)
+        expression = concatenation_manager(expression, errors)
 
     bracket_count = 0
     for char in expression:
@@ -225,11 +228,11 @@ def read_expression(expression):
     
     """ Si hay mas de un corchete llamamos a la funcion que los maneja """
     if bracket_count > 1:
-        expression = brackets_manager(expression = expression)
+        expression = brackets_manager(expression, errors)
 
     """ ¿Que pasa si solo se encuentra un corchete? """
     if bracket_count == 1:
-        print("Error de Corchete, la cantidad de [ y ] difieren")
+        errors.append("Error de Corchete, la cantidad de [ y ] difieren")
 
     is_variable = any(elemento in list(expression) for elemento in ["[","]","(",")","#","*","+","?","'",'"',"^","|"])
     variable = ''.join(expression)
@@ -240,7 +243,7 @@ def read_expression(expression):
             resp = resp.replace(")","/:)")
             return resp
         else:
-            print("Error de variable, '" + variable + "' no se ha instanciado anteriormente")
+            errors.append("Error de variable, '" + variable + "' no se ha instanciado anteriormente")
             return "error"
 
     qm_count = 0
@@ -250,15 +253,15 @@ def read_expression(expression):
 
     """ ¿Que pasa si hay mas '(' que ')' o viceversa? """
     if qm_count != 1 and qm_count%2 != 0:
-        print('Error de ", la cantidad de " difieren')
+        errors.append('Error de ", la cantidad de " difieren')
 
     """ Si hay mas de un corchete llamamos a la funcion que los maneja """
     if qm_count > 1 :
-        expression = quotation_marks_manager(expression = expression)
+        expression = quotation_marks_manager(expression, errors)
 
     """ ¿Que pasa si solo se encuentra un corchete? """
     if qm_count == 1:
-        print('Error de ", la cantidad de "')
+        errors.append('Error de ", la cantidad de "')
 
     return expression
 
@@ -269,34 +272,75 @@ def reader(file):
     with open(file, "r") as file:
         content = file.read()
         content = content.split("\n")
+
+    rule_index = -1
     
     for i in range(0,len(content)):
-        temporal = content[i].split(" ")
+        if content[i] != "" and content[i][0] != "#":
+            temporal = content[i].split(" ")
+            errors = []
 
-        foundError = False
+            foundError = False
 
-        while "" in temporal:
-            temporal.remove("")
+            while "" in temporal:
+                temporal.remove("")
 
-        if len(temporal) < 4:
-            errors.append([i,"No se declaró correctamente el token"])
+            if temporal[0] == "rule":
+                rule_index = i
+                break
+
+            if len(temporal) < 4:
+                errors.append([i,"No se declaró correctamente el token"])
+            
+            if temporal[0] != "let":
+                errors.append([i,"No se declaró correctamente el token (missing let)"])
+
+            if temporal[2] != "=":
+                errors.append([i,"No se declaró correctamente el token (missing =)"])
+
+            regex = read_expression(' '.join(temporal[3:]), errors)
+            regex = regex.replace("/:","")
+
+            if len(errors) > 0:
+                foundError = True
+
+            if not foundError:
+                variables[temporal[1]] = regex
+                temporal = (temporal[1],regex)
+                content[i] = temporal
+                reg = Regex(regex)
+                automata = Automata(automata_type="afd_from_afn_from_regex", regex = reg)
+
+            print(list(set(errors)))
+
+    if rule_index != -1:
+        for i in range(rule_index+1,len(content)):
+            temporal = content[i]
+            if "|" in list(temporal):
+                temporal = temporal[4:]
+
+            temporal = temporal.split("\t")
+            for i in range(0,len(temporal)):
+                temporal[i] = temporal[i].split(" ")
+
+            new_temp = []
+            for x in temporal:
+                if x != ['']:
+                    new_temp+=x
+            temporal = new_temp
+
+            while "{" in temporal:
+                temporal.remove("{")
+
+            while "{" in temporal:
+                temporal.remove("}")
+
+            while "{}" in temporal:
+                temporal.remove("{}")
+
+            for x in temporal:
+                variable = temporal[0]
+                if len(x)>1:
+                    instruction = ' '.join(temporal[1:])
+                    acciones[variable] = instruction
         
-        if temporal[0] != "let":
-            errors.append([i,"No se declaró correctamente el token (missing let)"])
-
-        if temporal[2] != "=":
-            errors.append([i,"No se declaró correctamente el token (missing =)"])
-
-        regex = read_expression(' '.join(temporal[3:]))
-        regex = regex.replace("/:","")
-
-        if not foundError:
-            variables[temporal[1]] = regex
-            temporal = (temporal[1],regex)
-            content[i] = temporal
-
-        regex = Regex(regex)
-        automata = Automata(automata_type="afd_from_afn_from_regex",regex=regex)
-        print(automata.simulate_afd("0.01Es3"))
-
-    #for x in content: print(x)
