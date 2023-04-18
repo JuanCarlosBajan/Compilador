@@ -1,11 +1,14 @@
 let digito = ['0'-'9']
 let float = (digito)+ ('.' (digito)+)? ('E' ('/-'|'-')? (digito)+)?
-let minuscula = ['a'-'z']
+let var = 'var'
+let def = 'def'
+let char = ['a'-'z']
+let identificador  = (char)+
 
 rule tokens =
 	espacioEnBlanco	{}
-  | identificador	{ print("Identificador\n") }
-  | numero			{ print("Número\n") }
-  | '+'				{ print("Operador de suma\n") }
-  | '*'				{ print("Operador de multiplicación\n") }
-  | '='				{ print("Operador de asignación\n") }
+  | digito	{ print("digito\n") }
+  | float			{ print("float\n") }
+  | var { print("var\n") }
+  | identificador { print("identificador\n") }
+  | string { print("string\n") }

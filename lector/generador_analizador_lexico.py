@@ -1,5 +1,6 @@
 from regex import Regex
 from automata import Automata
+import pickle
 
 
 
@@ -188,6 +189,7 @@ def quotation_marks_manager(expression, errors):
 
 variables = {}
 acciones = {}
+variables_automata = {}
 
 def read_expression(expression, errors):
 
@@ -305,11 +307,12 @@ def reader(file):
                 foundError = True
 
             if not foundError:
+                reg = Regex(regex)
+                automata = Automata(automata_type="afd_from_afn_from_regex", regex = reg)
+                variables_automata[temporal[1]] = automata
                 variables[temporal[1]] = regex
                 temporal = (temporal[1],regex)
                 content[i] = temporal
-                reg = Regex(regex)
-                automata = Automata(automata_type="afd_from_afn_from_regex", regex = reg)
 
             print(list(set(errors)))
 
@@ -343,4 +346,8 @@ def reader(file):
                 if len(x)>1:
                     instruction = ' '.join(temporal[1:])
                     acciones[variable] = instruction
-        
+    print(variables_automata)
+    with open("variables.pickle", "wb") as f:
+        pickle.dump(variables_automata, f)
+    with open("actions.pickle", "wb") as f:
+        pickle.dump(acciones, f)

@@ -1,0 +1,6 @@
+var hello = "hello"
+var hello = "hello"
+
+def function(hola) {
+    var amigo = 123
+}
