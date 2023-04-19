@@ -13,14 +13,15 @@ class LexAnalyzer:
 
     def mannage_expression(self, line, line_index, start, end):
         found_token = False
-        #print(line[start:end])
         for token in self.variables.keys():
             if self.variables[token].simulate_afd(line[start:end]):
                 found_token = True
                 self.table.append([token,line_index, line[start:end]])
+                if token in self.actions.keys():
+                    exec(self.actions[token])
                 break
         if not found_token:
-            print("No se encontro token para la expresion '" + line[start:end] +"' ")
+            print("No se encontro token para la expresion '" + line[start:end] +"' en la linea " + str(line_index))
 
     def analyze_code(self, file):
         content = ""
@@ -96,9 +97,17 @@ class LexAnalyzer:
                         start_index = ci
                     end_index = ci
 
-        for x in self.table:
-            print(x)
+            self.table.append(["newLine",li, "/n"])
+        
+        
+        #for x in self.table:
+        #    print(x)
 
+        self.table = [elemento for elemento in self.table if elemento[0] != 'space']
+
+        with open('tokens.txt', 'w') as f:
+            for elemento in self.table:
+                f.write(str(elemento) + '\n')
                 
 
         

@@ -344,7 +344,7 @@ def reader(file):
             for x in temporal:
                 variable = temporal[0]
                 if len(x)>1:
-                    instruction = ' '.join(temporal[1:])
+                    instruction = ' '.join(temporal[1:-1])
                     acciones[variable] = instruction
     print(variables_automata)
     with open("variables.pickle", "wb") as f:
