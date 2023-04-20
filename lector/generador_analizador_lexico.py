@@ -178,9 +178,6 @@ def brackets_manager(expression, errors):
 def quotation_marks_manager(expression, errors):
 
     expression = list(expression)
-    
-    while '"' in expression:
-        expression.remove('"')
 
     while "'" in expression:
         expression.remove("'")
@@ -207,7 +204,8 @@ def read_expression(expression, errors):
     """ ¿Que pasa si solo se encuentra un parentesis? """
     if p_count == 1:
         """ Manejar UN parentesis """
-        pass
+        if len(expression) == 1:
+            return expression
 
     """ ¿Que pasa si hay mas '(' que ')' o viceversa? """
     if p_count != 1 and p_count%2 != 0:
@@ -250,18 +248,18 @@ def read_expression(expression, errors):
 
     qm_count = 0
     for char in expression:
-        if char in ['"',"'"]:
+        if char in ["'"]:
             qm_count += 1
 
-    """ ¿Que pasa si hay mas '(' que ')' o viceversa? """
+    """ ¿Que pasa si no hay comillas que abren y cierran completas? """
     if qm_count != 1 and qm_count%2 != 0:
         errors.append('Error de ", la cantidad de " difieren')
 
-    """ Si hay mas de un corchete llamamos a la funcion que los maneja """
+    """ Si hay mas de una comilla llamamos a la funcion que los maneja """
     if qm_count > 1 :
         expression = quotation_marks_manager(expression, errors)
 
-    """ ¿Que pasa si solo se encuentra un corchete? """
+    """ ¿Que pasa si solo se encuentra una comilla? """
     if qm_count == 1:
         errors.append('Error de ", la cantidad de "')
 
@@ -307,12 +305,19 @@ def reader(file):
                 foundError = True
 
             if not foundError:
-                reg = Regex(regex)
-                automata = Automata(automata_type="afd_from_afn_from_regex", regex = reg)
-                variables_automata[temporal[1]] = automata
-                variables[temporal[1]] = regex
-                temporal = (temporal[1],regex)
-                content[i] = temporal
+                if len(regex) == 1:
+                    automata = Automata(automata_type="char", regex = regex)
+                    variables_automata[temporal[1]] = automata
+                    variables[temporal[1]] = regex
+                    temporal = (temporal[1],regex)
+                    content[i] = temporal
+                else:
+                    reg = Regex(regex)
+                    automata = Automata(automata_type="afd_from_afn_from_regex", regex = reg)
+                    variables_automata[temporal[1]] = automata
+                    variables[temporal[1]] = regex
+                    temporal = (temporal[1],regex)
+                    content[i] = temporal
 
             print(list(set(errors)))
 

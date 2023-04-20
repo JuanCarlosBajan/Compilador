@@ -56,6 +56,14 @@ class Automata:
             self.symbols=[")"]
             self.start=["s1"]
             self.transitions=[("s1",")","s2")]
+        
+        elif automata_type == "char":
+            self.states=["s1","s2"]
+            self.acceptance=["s2"]
+            self.symbols=[regex]
+            self.start=["s1"]
+            self.transitions=[("s1",regex,"s2")]
+            self.represent_graph()
 
 
 
@@ -265,6 +273,7 @@ class Automata:
         #stack[0].writeTxt('respuestas/FromRegex_To_AFN.txt', stack[0].states, stack[0].symbols, stack[0].start, stack[0].acceptance,
         #              stack[0].transitions, 'FromRegex_To_AFN')
 
+        print(stack[0])
         self.states = stack[0].states
         self.symbols = stack[0].symbols
         self.start = stack[0].start
