@@ -8,7 +8,6 @@ class LexAnalyzer:
             self.variables = pickle.load(f)
         with open(actions_file, "rb") as f:
             self.actions = pickle.load(f)
-        print(self.variables)
         self.table = []
 
         self.minusculas = ['a','b','c','d','e','f','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
@@ -19,9 +18,16 @@ class LexAnalyzer:
     def mannage_expression(self, line, line_index, start, end):
         found_token = False
         for token in self.variables.keys():
-            if self.variables[token].simulate_afd(line[start:end]):
+
+            if end !=-1 and  self.variables[token].simulate_afd(line[start:end]):
                 found_token = True
                 self.table.append([token,line_index, line[start:end]])
+                if token in self.actions.keys():
+                    exec(self.actions[token])
+                break
+            if end ==-1 and  self.variables[token].simulate_afd(line[start:]):
+                found_token = True
+                self.table.append([token,line_index, line[start:]])
                 if token in self.actions.keys():
                     exec(self.actions[token])
                 break
@@ -40,9 +46,10 @@ class LexAnalyzer:
             open_string = False
             start = -1
             end = -1
-            content[li] = content[li] + " "
+            content[li] = content[li] + "  "
             line = content[li]
             line = line.replace("+", "/-")
+            line = line.replace("*", "/x")
             line = line.replace(" ", "/s")
             used_index = []
             for ci in range(0,len(content[li])):
@@ -55,7 +62,7 @@ class LexAnalyzer:
                         
                         found_token = False
                         end = current_index
-                        #print("'" + line[start:end] + "'")
+                        print("'" + line[start:end] + "'")
 
                         for token in self.variables.keys():
                             if self.variables[token].simulate_afd(line[start:end+1]):
@@ -64,9 +71,13 @@ class LexAnalyzer:
                         
                         if line[start:end] == "" and not found_token:
                             break
+
+                        if end == len(line):
+                            self.mannage_expression(line=line, line_index=li, start=start, end=-1)
+                            start = -1
+                            end = -1
                         
                         if not found_token:
-                            #print(line[start:end])
                             self.mannage_expression(line=line, line_index=li, start=start, end=end)
                             start = -1
                             end = -1
@@ -134,7 +145,7 @@ class LexAnalyzer:
                         start_index = ci
                     end_index = ci """
 
-            self.table.append(["newLine",li, "/n"])
+            #self.table.append(["newLine",li, "/n"])
         
         
         #for x in self.table:
