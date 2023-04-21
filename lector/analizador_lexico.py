@@ -46,7 +46,7 @@ class LexAnalyzer:
             open_string = False
             start = -1
             end = -1
-            content[li] = content[li] + "  "
+            #content[li] = content[li] + "  "
             line = content[li]
             line = line.replace("+", "/-")
             line = line.replace("*", "/x")
@@ -62,17 +62,22 @@ class LexAnalyzer:
                         
                         found_token = False
                         end = current_index
-                        print("'" + line[start:end] + "'")
+                        #print("'" + line[start:end] + "'")
 
                         for token in self.variables.keys():
                             if self.variables[token].simulate_afd(line[start:end+1]):
                                 found_token = True
                                      
-                        
-                        if line[start:end] == "" and not found_token:
+                        if start >= len(line):
                             break
+                        
+                        if line[start:end] == '' and not found_token:
+                            used_index.append(current_index)   
+                            current_index += 1
+                            continue
 
-                        if end == len(line):
+
+                        if current_index == len(line):
                             self.mannage_expression(line=line, line_index=li, start=start, end=-1)
                             start = -1
                             end = -1
@@ -81,6 +86,8 @@ class LexAnalyzer:
                             self.mannage_expression(line=line, line_index=li, start=start, end=end)
                             start = -1
                             end = -1
+
+
                         else:
                             used_index.append(current_index)   
                             current_index += 1

@@ -4,15 +4,15 @@ let closeparenthesis = ')'
 let closekey = '}'
 let openkey = '{'
 let equal = '='
-let quote = '"'
 let digito = ['0'-'9']
 let int = (digito)+
 let float = (int) ('.' (digito)+)? ('E' ('/-'|'-')? (digito)+)?
 let var = 'var'
 let def = 'def'
+let quote = '"'
 let char = ['a'-'z']
 let identificador  = (char)+
-let unclosedstring = (quote) (identificador)
+let ERRORunclosedstring = (quote) (identificador)
 let string = (quote) (identificador) (quote)
 
 rule tokens =
@@ -25,9 +25,10 @@ rule tokens =
   | openkey { print("openkey") }
   | equal { print("equal") }
   | float			{ print("float") }
+  | int			{ print("int") }
   | var { print("var") }
   | def { print("def") }
   | char { print("char") }
   | identificador { print("identificador") }
-  | unclosedstring { print("unclosedstring") }
+  | ERRORunclosedstring { print("ERRORunclosedstring") }
   | string { print("string") }
