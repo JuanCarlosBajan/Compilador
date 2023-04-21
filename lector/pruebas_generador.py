@@ -1,3 +1,3 @@
 from generador_analizador_lexico import reader
 
-reader("language.ml")
+reader("yalex3.ml")

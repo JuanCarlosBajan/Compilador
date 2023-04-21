@@ -41,7 +41,7 @@ class Automata:
             self.AFD = []
             self.afn_from_regex(regex)
             self.toAFD()
-            self.represent_graph()
+            #self.represent_graph()
         
         elif automata_type == "(":
             self.states=["s1","s2"]
@@ -63,7 +63,7 @@ class Automata:
             self.symbols=[regex]
             self.start=["s1"]
             self.transitions=[("s1",regex,"s2")]
-            self.represent_graph()
+            #self.represent_graph()
 
 
 

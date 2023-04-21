@@ -1,22 +1,26 @@
-let digit = ['0'-'9']
-let integer = (digit)+
-let separator = '/s'
-let if = 'if'
 let for = 'for'
-let while = 'while'
+let if = 'if'
+let digit = ['0'-'9']
 let char = ['a'-'z']
-let identificador = (char)+
+let separator = '/s'
+let integer = (digit)+
+let decimal = integer (('.' (integer))?)|('.')
+let identificador = ['a'-'z']+ 'xyz'
+let ERRORid = ['a'-'z']+
+let quote = '"'
+let string = (quote) (['0'-'z']|('/'))+ (quote)
+let ERRORunclosedstring = (quote) (['0'-'z']|('/'))+
 
 
 rule tokens =
  digit	{print("digit")}
-  | multiply	{ print("multiply") }
+  | char	{ print("char") }
+  | identificador	{ print("identificador") }
   | integer	{ print("integer") }
-  | plus	{ print("plus") }
-  | minus	{ print("minus") }
-  | divide	{ print("divide") }
-  | pow	{ print("pow") }
   | if	{ print("if") }
   | for	{ print("for") }
   | while	{ print("while") }
   | separator	{ print("separator") }
+  | quote	{ print("quote") }
+  | ERRORunclosedstring	{ print("ERRORunclosedstring") }
+  | string	{ print("string") }
