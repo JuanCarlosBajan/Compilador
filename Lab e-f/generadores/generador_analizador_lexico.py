@@ -1,4 +1,5 @@
-from automata import Automata
+from src.automata import Automata
+from src.regex import Regex
 import pickle
 
 
@@ -272,9 +273,13 @@ def yalex_reader(file):
         content = file.read()
         content = content.split("\n")
 
+        print(content)
+
     rule_index = -1
+
     
     for i in range(0,len(content)):
+
         if content[i] != "" and content[i][0] != "#":
             temporal = content[i].split(" ")
             errors = []
@@ -306,14 +311,14 @@ def yalex_reader(file):
             if not foundError:
                 if len(regex) == 1:
                     automata = Automata(automata_type="char", regex = regex)
-                    variables_automata[temporal[1]] = automata
+                    variables_automata[temporal[1]] = automata.get_automata()
                     variables[temporal[1]] = regex
                     temporal = (temporal[1],regex)
                     content[i] = temporal
                 else:
                     reg = Regex(regex)
                     automata = Automata(automata_type="afd_from_afn_from_regex", regex = reg)
-                    variables_automata[temporal[1]] = automata
+                    variables_automata[temporal[1]] = automata.get_automata()
                     variables[temporal[1]] = regex
                     temporal = (temporal[1],regex)
                     content[i] = temporal
@@ -345,13 +350,17 @@ def yalex_reader(file):
             while "{}" in temporal:
                 temporal.remove("{}")
 
+            while '' in temporal:
+                temporal.remove('')
+
             for x in temporal:
                 variable = temporal[0]
                 if len(x)>1:
                     instruction = ' '.join(temporal[1:-1])
                     acciones[variable] = instruction
-    print(variables_automata)
-    with open("variables.pickle", "wb") as f:
-        pickle.dump(variables_automata, f)
-    with open("actions.pickle", "wb") as f:
-        pickle.dump(acciones, f)
+    result = {
+        'variables':variables_automata,
+        'actions':acciones
+    }
+    with open("../tokenizer.pickle", "wb") as f:
+        pickle.dump(result, f)
