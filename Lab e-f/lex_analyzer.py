@@ -17,6 +17,70 @@ class LexAnalyzer:
         for token in self.actions.keys():
             if self.actions[token] not in self.grammar['tokens'] and self.actions[token] not in self.grammar['ignores']:
                 print('El token ' + token + ' No se ha encontrado en la gramatica')
+    
+    def compute_follows(self):
+        grammar = self.grammar['productions']
+        # Construir el conjunto de símbolos no terminales
+        nonterminals = []
+        for production in grammar:
+            nonterminals.append(production[0])
+
+        print(nonterminals)
+
+        # Inicializar el diccionario de follows con el conjunto vacío para cada no terminal
+        follows = {}
+        for nonterminal in nonterminals:
+            follows[nonterminal] = set()
+
+        # Añadir el símbolo final ($)
+        follows[grammar[0][0]].add('$')
+
+        # Realizar el análisis ascendente para cada símbolo no terminal
+        for nonterminal in nonterminals:
+            for production in grammar:
+                if nonterminal in production[1]:
+                    i = production[1].index(nonterminal)
+                    if i == len(production[1]) - 1:
+                        # Si el no terminal está al final, añadir los follows del no terminal padre
+                        if nonterminal != production[0]:
+                            follows[nonterminal] |= follows[production[0]]
+                    else:
+                        # Si el no terminal no está al final, añadir los primeros del símbolo siguiente
+                        next_symbol = production[1][i+1]
+                        if next_symbol in nonterminals:
+                            follows[nonterminal] |= self.compute_firsts(grammar, [next_symbol])
+                        else:
+                            follows[nonterminal].add(next_symbol)
+
+
+        return follows
+    
+    def compute_firsts(self, grammar, symbols):
+        # Construir el conjunto de símbolos no terminales
+        nonterminals = set()
+        for production in grammar:
+            nonterminals.add(production[0])
+
+        # Inicializar el conjunto de firsts con el conjunto vacío
+        firsts = set()
+
+        # Calcular los firsts para cada símbolo
+        for symbol in symbols:
+            # Si es un símbolo terminal, añadirlo al conjunto de firsts y terminar el ciclo
+            if symbol not in nonterminals:
+                firsts.add(symbol)
+                break
+            # Si es un símbolo no terminal, añadir los firsts de sus producciones
+            for production in grammar:
+                if production[0] == symbol:
+                    # Si la producción comienza con un símbolo terminal, añadirlo al conjunto de firsts
+                    if production[1][0] not in nonterminals:
+                        firsts.add(production[1][0])
+                    # Si la producción comienza con un símbolo no terminal, calcular sus firsts recursivamente
+                    else:
+                        firsts |= self.compute_firsts(grammar, [production[1][0]])
+        return firsts
+
 
     def simulate_afd(self, automata, word):
         for state in automata['start']:
@@ -100,5 +164,7 @@ class LexAnalyzer:
                 
 
 analyzer = LexAnalyzer("tokenizer.pickle","gramatica.pickle")
+
+print(analyzer.compute_follows())
 
 analyzer.analyze_code(file="code/code.txt")
