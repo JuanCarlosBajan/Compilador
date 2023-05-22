@@ -12,6 +12,8 @@ class LexAnalyzer:
         with open(grammar, "rb") as f:
             self.grammar = pickle.load(f)
 
+            self.build_action_ira_table()
+
         self.table = []
 
         for token in self.actions.keys():
@@ -23,8 +25,6 @@ class LexAnalyzer:
         nonterminals = []
         for production in grammar:
             nonterminals.append(production[0])
-
-        print(nonterminals)
 
         follows = {}
         for nonterminal in nonterminals:
@@ -128,6 +128,80 @@ class LexAnalyzer:
             if automata['acceptance'].count(state) > 0:
                 return True
         return False
+    
+    def build_action_ira_table(self):
+        follows = self.compute_follows()
+        names = [state['name'] for state in self.grammar['lr0']['states']]
+
+        tokens = self.grammar['tokens']
+        ignores = self.grammar['ignores']
+        productions = self.grammar['productions']
+
+        terminals = [x for x in tokens if x not in ignores]
+
+        nonterminals = []
+        for production in self.grammar['productions']:
+            if production[0] not in nonterminals:
+                nonterminals.append(production[0])
+        
+        nonterminals = list(nonterminals)
+
+        terminals.append('$')
+
+        action = [[None for value in terminals] for state in self.grammar['lr0']['states']]
+        ir_a = [[None for value in nonterminals] for state in self.grammar['lr0']['states']]
+
+        reduce_states = []
+        for state in self.grammar['lr0']['states']:
+            found_point_in_last = False
+            expression_found = ()
+            for exp in state['heart']:
+                if exp[1][-1] == '~' and "'" not in list(exp[0]):
+                    found_point_in_last = True
+                    expression_found = exp
+                if exp[1][-1] == '~' and "'" in list(exp[0]) and (state['name'],"acc",state['name']) not in self.grammar['lr0']['transitions']:
+                    self.grammar['lr0']['transitions'].append((state['name'],"acc",state['name']))
+            
+            if found_point_in_last:
+                reduce_states.append((expression_found, state))
+
+        for state in reduce_states:
+            state_index = names.index(state[1]['name'])
+
+            curr_prod = (state[0][0],tuple([value for value in state[0][1] if value != "~"]))
+
+            follow_elements = list(follows[state[0][0]])
+            for f_e in follow_elements:
+                if action[state_index][terminals.index(f_e)] is not None:
+                    if action[state_index][terminals.index(f_e)][0:1] == "r":
+                        print("Conflico Reduccion Reduccion en el estado " + str(state_index) + " y terminal " + f_e)
+                    else:
+                        print("Conflico Siguiente Reduccion en el estado " + str(state_index) + " y terminal " + f_e)
+                action[state_index][terminals.index(f_e)] = "r" + str(productions.index(curr_prod)+1)
+
+
+        for transition in self.grammar['lr0']['transitions']:
+            if transition[1] in terminals:
+                if action[names.index(transition[0])][terminals.index(transition[1])] is not None:
+                    if action[names.index(transition[0])][terminals.index(transition[1])][0:1] == "r":
+                        print("Conflico Reduccion Siguiente en el estado " + str(state_index) + " y terminal " + f_e)
+                    else:
+                        print("Conflico Siguiente Siguiente en el estado " + str(state_index) + " y terminal " + f_e)
+                action[names.index(transition[0])][terminals.index(transition[1])] = "s" + str(names.index(transition[2]))
+            if transition[1] in nonterminals:
+                if ir_a[names.index(transition[0])][nonterminals.index(transition[1])] is not None:
+                    print("conflicto de transicion en IR A con el estado " + str(transition[0]) + " y no terminal " + str(transition[1]))
+                ir_a[names.index(transition[0])][nonterminals.index(transition[1])] = str(names.index(transition[2]))
+            if transition[1] == "acc":
+                action[names.index(transition[0])][terminals.index("$")] = "acc"
+
+        self.names = names
+        self.nonterminals = nonterminals
+        self.terminals = terminals
+        self.productions = productions
+        self.action = action
+        self.ir_a = ir_a
+
 
     def analyze_code(self, file):
         content = ""
@@ -144,12 +218,21 @@ class LexAnalyzer:
         current_index = 0
         not_found_token = ''
         not_found_token_list = []
+
+        pila = [0]
+        simbolos = []
+
         while True:
             start_index = current_index
             end_index = -1
 
             element_to_add = []
             token_found = None
+
+            cont = True
+
+            not_accepted = False
+
 
             for end in range(start_index,len(content)):
                 for token in list(reversed(self.variables.keys())):
@@ -164,12 +247,20 @@ class LexAnalyzer:
                 
             if end_index == -1:
                 not_found_token += content[current_index]
-                current_index += 1
-
-            else:
-
-                if not_found_token != '':
+                cont = False
+                if current_index == len(content)-1:
                     not_found_token_list.append(not_found_token)
+                    print("el token " + not_found_token + " no se ha encontrado en el sistema, ignorando...")
+                    cont = True
+                    end_index = len(content)-1
+                else:
+                    current_index += 1
+
+            if cont:
+
+                if not_found_token != '' and current_index < len(content)-1:
+                    not_found_token_list.append(not_found_token)
+                    print("el token " + not_found_token + " no se ha encontrado en el sistema, ignorando...")
                     not_found_token = ''
 
                 
@@ -178,9 +269,66 @@ class LexAnalyzer:
                     tok = self.actions[token_found]
                     if tok not in self.grammar['tokens']:
                         print('El token ' + tok + ' no se ha encontrado en el analizador lexico mas no en el analizador sintactico')
-                elif token_found not in self.actions.keys() and token_found not in self.grammar['tokens']:
-                    print('El token ' + token_found + ' no posee accion y se encuentra en el analizador sintactico')
+                    
+                    else:
+                        if tok not in self.grammar['ignores']:
+                            while True:
+                                #print(pila[-1],self.terminals.index(tok))
+                                el = self.action[pila[-1]][self.terminals.index(tok)]
+                                #print(el)
+                                if el is not None:
+                                    if el[:1] == 's':
+                                        pila.append(int(el[1:]))
+                                        simbolos.append(tok)
+                                        #print(pila)
+                                        #print(simbolos)
+                                        break
+                                    if el[:1] == 'r':
+                                        for val in self.productions[int(el[1:])-1][1]:
+                                            pila.pop()
+                                            simbolos.pop()
+                                        simbolos.append(self.productions[int(el[1:])-1][0])
+                                        pila.append(int(self.ir_a[pila[-1]][self.nonterminals.index(simbolos[-1])]))
+                                        #print(pila)
+                                        #print(simbolos)
+                                else:
+                                    print("CADENA NO ACEPTADA D:")
+                                    not_accepted = True
+                                    break
+
+                if not_accepted:
+                    break
+
+                elif token_found is not None and token_found not in self.actions.keys() and token_found not in self.grammar['tokens']:
+                    print('El token ' + token_found + ' no posee accion y no se encuentra en el analizador sintactico')
+
                 if end_index == len(content)-1:
+                    tok = "$"
+                    while True:
+                        #print(pila[-1],self.terminals.index(tok))
+                        el = self.action[pila[-1]][self.terminals.index(tok)]
+                        #print(el)
+                        if el is not None:
+                            if el[:1] == 's':
+                                pila.append(int(el[1:]))
+                                simbolos.append(tok)
+                                #print(pila)
+                                #print(simbolos)
+                                break
+                            elif el[:1] == 'r':
+                                for val in self.productions[int(el[1:])-1][1]:
+                                    pila.pop()
+                                    simbolos.pop()
+                                simbolos.append(self.productions[int(el[1:])-1][0])
+                                pila.append(int(self.ir_a[pila[-1]][self.nonterminals.index(simbolos[-1])]))
+                                #print(pila)
+                                #print(simbolos)
+                            elif el == "acc":
+                                print("CADENA ACEPTADA YEY!!!!")
+                                break
+                        else:
+                            print("CADENA NO ACEPTADA D:")
+                            break
                     break
 
                 current_index = end_index+1
@@ -192,7 +340,5 @@ class LexAnalyzer:
 
 analyzer = LexAnalyzer("tokenizer.pickle","gramatica.pickle")
 
-print(analyzer.compute_follows())
-print(analyzer.compute_all_firsts())
 
 analyzer.analyze_code(file="code/code.txt")
