@@ -8,6 +8,7 @@ class LexAnalyzer:
             result = pickle.load(f)
             self.variables = result['variables']
             self.actions = result['actions']
+            self.inverted_actions = {value: key for key, value in result['actions'].items()}
 
         with open(grammar, "rb") as f:
             self.grammar = pickle.load(f)
@@ -231,8 +232,6 @@ class LexAnalyzer:
 
             cont = True
 
-            not_accepted = False
-
 
             for end in range(start_index,len(content)):
                 for token in list(reversed(self.variables.keys())):
@@ -292,12 +291,26 @@ class LexAnalyzer:
                                         #print(pila)
                                         #print(simbolos)
                                 else:
-                                    print("CADENA NO ACEPTADA D:")
-                                    not_accepted = True
+                                    posible_v = ""
+                                    for i in range(0,len(self.action[pila[-1]])):
+                                        if self.action[pila[-1]][i] is not None and self.terminals[i] != "$":
+                                            v = element_to_add['content']
+                                            v = v.replace("/-","+")
+                                            v = v.replace("/x","*")
+                                            v = v.replace("/s"," ")
+                                            v = v.replace("/n","\n")
+                                            if posible_v == "":
+                                                posible_v += self.inverted_actions[self.terminals[i]]
+                                            else:
+                                                posible_v += " o " + self.inverted_actions[self.terminals[i]]
+                                    if posible_v != "":
+                                        print("Error sintáctico en " + v + ", quizás querías colocar " + posible_v)
+
+                                    print("Ignorando error...")
                                     break
 
-                if not_accepted:
-                    break
+                #if not_accepted:
+                #    break
 
                 elif token_found is not None and token_found not in self.actions.keys() and token_found not in self.grammar['tokens']:
                     print('El token ' + token_found + ' no posee accion y no se encuentra en el analizador sintactico')
@@ -327,6 +340,20 @@ class LexAnalyzer:
                                 print("CADENA ACEPTADA YEY!!!!")
                                 break
                         else:
+                            posible_v = ""
+                            for i in range(0,len(self.action[pila[-1]])):
+                                if self.action[pila[-1]][i] is not None and self.terminals[i] != "$":
+                                    v = element_to_add['content']
+                                    v = v.replace("/-","+")
+                                    v = v.replace("/x","*")
+                                    v = v.replace("/s"," ")
+                                    v = v.replace("/n","\n")
+                                    if posible_v == "":
+                                        posible_v += self.inverted_actions[self.terminals[i]]
+                                    else:
+                                        posible_v += " o " + self.inverted_actions[self.terminals[i]]
+                            if posible_v != "":
+                                print("Error sintáctico en " + v + ", quizás querías colocar " + posible_v)
                             print("CADENA NO ACEPTADA D:")
                             break
                     break
